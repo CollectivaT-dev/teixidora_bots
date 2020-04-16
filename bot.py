@@ -50,7 +50,7 @@ class Bot(object):
 
     def get_language(self, content):
         # placeholder
-        return 'en-US'
+        return 'ca-ES'
 
     def correct_content(self, content, language):
         # TODO to be moved to LT processes class
@@ -81,17 +81,20 @@ class Bot(object):
             response = api.check(request,
                                  api_url=self.languagetool,
                                  lang=language)
+            # TODO check language, if confidence lower than 0.90 resend
            
             message = '%i/%i response sent'%(i+1, total_requests)
             print(message)
             logging.info(message)
-            time.sleep(4)
+            if i+1 != total_requests:
+                # wait at all except the last LT api call
+                time.sleep(4)
             responses['results'].append({'content': request,
                                            'response': response})
 
         h = hashlib.md5(self.title.encode('utf8'))
         outname = h.hexdigest()+'.json'
-        with open(outname, 'w') as out:
+        with open('cache/'+outname, 'w') as out:
             json.dump(responses, out, indent = 2)
 
 if __name__ == "__main__":

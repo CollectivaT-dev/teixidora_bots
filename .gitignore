@@ -1,2 +1,6 @@
 venv/
+__pycache__/
+apicache-py3/
 *.json
+*.lwp
+*.ctrl

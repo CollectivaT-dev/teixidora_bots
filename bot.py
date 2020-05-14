@@ -71,10 +71,10 @@ class Bot(object):
             if re_lan.search(language):
                 self.declared_language = lan_code
         if not self.declared_language:
-            # TODO logging
             msg = 'WARNING: unknown language in the wiki page of the event %s'\
                   ''%language
             print(msg)
+            logging.warning(msg)
 
     def correct_notes(self):
         self.get_note_titles()

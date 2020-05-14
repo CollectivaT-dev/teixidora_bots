@@ -3,5 +3,6 @@ __pycache__/
 apicache-py3/
 cache/
 *.json
+*.swp
 *.lwp
 *.ctrl

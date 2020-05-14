@@ -6,11 +6,16 @@ import time
 import hashlib
 import logging
 import pywikibot
+import mwparserfromhell
 
 from pylanguagetool import api
 from auto_corrector import AutoCorrector
 
 LT_URL = 'https://languagetool.org/api/v2/'
+RE_LANGS = {'ca-ES': re.compile('^catal'),
+            'es-ES': re.compile('^(cast|esp|spa)'),
+            'en-US': re.compile('^(eng|ing|ang)'),
+            'fr-FR': re.compile('^fr')}
 
 def main(title):
     c_bot = Bot('corrector_bot')
@@ -29,6 +34,7 @@ class Bot(object):
         self.botname = botname
         self.languagetool = LT_URL
         self.outname = None
+        self.declared_language = None
 
         self.auto_corrector = AutoCorrector()
 
@@ -36,6 +42,7 @@ class Bot(object):
         # get a new teixidora page initializing the rest of the variables
         self.title = title
         self.page = pywikibot.Page(self.site, title)
+        self.wikicode = mwparserfromhell.parse(self.page.text)
 
         # get cache out file hash
         # TODO push to a db and use hash as the key
@@ -46,6 +53,28 @@ class Bot(object):
         # clean the notes and corrected notes objects if they were full
         self.notes = []
         self.corrected_notes = {}
+
+        # get declared language
+        self.get_declared_language()
+
+    def get_declared_language(self):
+        lan_param = 'language'
+        for template in self.wikicode.filter_templates():
+            for param in template.params:
+                if param.startswith(lan_param):
+                    language = template.get(lan_param)\
+                                       .replace('%s='%lan_param,'')\
+                                       .lower()
+        # convert language to language code due to non-standard language
+        # naming convention
+        for lan_code, re_lan in RE_LANGS.items():
+            if re_lan.search(language):
+                self.declared_language = lan_code
+        if not self.declared_language:
+            # TODO logging
+            msg = 'WARNING: unknown language in the wiki page of the event %s'\
+                  ''%language
+            print(msg)
 
     def correct_notes(self):
         self.get_note_titles()
@@ -65,8 +94,11 @@ class Bot(object):
         return self.correct_content(content, language)
 
     def get_language(self, content):
-        # placeholder
-        return 'ca-ES'
+        # TODO send also to LT to check
+        if self.declared_language:
+            return self.declared_language
+        else:
+            return 'ca-ES'
 
     def correct_content(self, content, language):
         # TODO to be moved to LT processes class

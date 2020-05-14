@@ -85,7 +85,8 @@ class Bot(object):
         # tokens extracted here will be ignored in the correction
         # implementation
         fields = ['projects mentioned', 'keywords', 'organizer',
-                  'organizations mentioned']
+                  'organizations mentioned', 'speakers',
+                  'keywords in English']
         for field in fields:
             for template in self.wikicode.filter_templates():
                 for param in template.params:

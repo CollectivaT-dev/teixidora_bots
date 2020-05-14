@@ -35,6 +35,7 @@ class Bot(object):
         self.languagetool = LT_URL
         self.outname = None
         self.declared_language = None
+        self.local_corpus = set()
 
         self.auto_corrector = AutoCorrector()
 
@@ -57,14 +58,18 @@ class Bot(object):
         # get declared language
         self.get_declared_language()
 
+        # get mentioned elements from semantic fields
+        self.get_local_corpus()
+        self.auto_corrector.corpus = self.local_corpus
+
     def get_declared_language(self):
         lan_param = 'language'
         for template in self.wikicode.filter_templates():
             for param in template.params:
                 if param.startswith(lan_param):
-                    language = template.get(lan_param)\
-                                       .replace('%s='%lan_param,'')\
+                    language = template.get(lan_param)[len(lan_param)+1:]\
                                        .lower()
+                    break
         # convert language to language code due to non-standard language
         # naming convention
         for lan_code, re_lan in RE_LANGS.items():
@@ -75,6 +80,23 @@ class Bot(object):
                   ''%language
             print(msg)
             logging.warning(msg)
+
+    def get_local_corpus(self):
+        # tokens extracted here will be ignored in the correction
+        # implementation
+        fields = ['projects mentioned', 'keywords', 'organizer',
+                  'organizations mentioned']
+        for field in fields:
+            for template in self.wikicode.filter_templates():
+                for param in template.params:
+                    if param.startswith(field):
+                        # we are interested in tokens not concepts hence
+                        # we first get rid of the commas and then split
+                        elements_str = template.get(field)[len(field)+1:]\
+                                               .replace(',','')
+                        elements = set(elements_str.strip().lower().split())
+                        self.local_corpus = self.local_corpus.union(elements)
+                        break
 
     def correct_notes(self):
         self.get_note_titles()

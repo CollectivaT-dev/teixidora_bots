@@ -1,5 +1,7 @@
 import logging
 
+LT_MESSAGES = ["(s'ha arribat al límit de suggeriments)"]
+
 class AutoCorrector(object):
     def __init__(self):
         self.correction_categories = {'ca-ES':
@@ -19,6 +21,7 @@ class AutoCorrector(object):
                                 'EN_SPECIFIC_CASE',
                                 'EN_COMPOUNDS',
                                 'EN_CONTRACTION_SPELLING']}
+        self.corpus = set()
 
     def auto_correct(self, response):
         content = response['content']
@@ -26,9 +29,15 @@ class AutoCorrector(object):
         for match in response['response']['matches']:
             if match.get('replacements'):
                 if len(match['replacements']) == 1:
-                    target = content[match['offset']:match['offset']+match['length']]
-                    replacement = match['replacements'][0]['value'] 
+                    i_start = match['offset']
+                    i_end = match['offset']+match['length']
+                    target = content[i_start:i_end]
+                    replacement = match['replacements'][0]['value']
                     category = match['rule']['id']
-                    if category in self.correction_categories[language]:
-                       print(category, target, replacement)
+                    if target.lower() not in self.corpus:
+                       if replacement not in LT_MESSAGES and\
+                          category in self.correction_categories[language]:
+                        print(category, target, replacement)
+                    else:
+                        print('%s in corpus'%target)
         return response['content']

@@ -1,6 +1,7 @@
 venv/
 __pycache__/
 apicache-py3/
+cache/
 *.json
 *.lwp
 *.ctrl

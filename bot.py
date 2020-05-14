@@ -20,9 +20,12 @@ def main(title):
     c_bot.implement_corrections()
 
 class Bot(object):
-    def __init__(self, botname, languagetool = LT_URL):
+    def __init__(self, botname, host = 'teixidora', languagetool = LT_URL):
         # initializes the connection to teixidora semantic wiki
-        self.site = pywikibot.Site('ca', 'teixidora')
+        if host == 'teixidora':
+            self.site = pywikibot.Site('ca', 'teixidora')
+        else:
+            self.site = pywikibot.Site('ca', 'localhost')
         self.botname = botname
         self.languagetool = LT_URL
         self.outname = None

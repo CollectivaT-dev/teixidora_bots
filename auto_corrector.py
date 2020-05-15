@@ -21,6 +21,7 @@ class AutoCorrector(object):
                                 'EN_SPECIFIC_CASE',
                                 'EN_COMPOUNDS',
                                 'EN_CONTRACTION_SPELLING']}
+        # corpus initialized from outer scope
         self.corpus = set()
 
     def auto_correct(self, response):

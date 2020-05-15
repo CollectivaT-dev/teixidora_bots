@@ -10,6 +10,7 @@ import mwparserfromhell
 
 from pylanguagetool import api
 from auto_corrector import AutoCorrector
+from corpora_utils import get_global_corpora, cache_filepath
 
 LT_URL = 'https://languagetool.org/api/v2/'
 RE_LANGS = {'ca-ES': re.compile('^catal'),
@@ -36,6 +37,12 @@ class Bot(object):
         self.outname = None
         self.declared_language = None
         self.local_corpus = set()
+
+        # TODO better file path handling
+        if not os.path.exists(cache_filepath):
+            self.global_corpus = get_global_corpora(self.site)
+        else:
+            self.global_corpus = open(cache_filepath).read()
 
         self.auto_corrector = AutoCorrector()
 
@@ -98,6 +105,9 @@ class Bot(object):
                         elements = set(elements_str.strip().lower().split())
                         self.local_corpus = self.local_corpus.union(elements)
                         break
+        # remove symbols if they appear as tokens
+        stop_signs = set(['-', '?', '!', '/', '\\', '"', "'"])
+        self.local_corpus = self.local_corpus.difference(stop_signs)
 
     def correct_notes(self):
         self.get_note_titles()

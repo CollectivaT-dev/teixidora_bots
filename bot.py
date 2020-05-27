@@ -24,6 +24,7 @@ def main(title):
     c_bot.get_page(title)
     c_bot.correct_notes()
     c_bot.implement_corrections()
+    c_bot.send_corrections()
 
 class Bot(object):
     def __init__(self, botname, host = 'teixidora', languagetool = LT_URL):
@@ -151,6 +152,7 @@ class Bot(object):
 
         if os.path.isfile(self.outpath):
             msg = 'title exists in cache: %s'%self.title
+            print(self.outpath)
             print(msg)
             logging.info(msg)
             with open(self.outpath) as f:
@@ -196,6 +198,7 @@ class Bot(object):
             return responses
 
     def implement_corrections(self):
+        self.targets = []
         if self.corrected_notes:
             # implements the corrections and pushes the results in
             # self.corrected_notes[note]['results'][i]['corrected_content']
@@ -208,15 +211,22 @@ class Bot(object):
                        '. '.join([c['content'] for c in responses['results']]),
                        '. '.join([c['corrected_content']\
                                               for c in responses['results']])]
-                self.write_corrections(target)
+                self.targets.append(target)
                 with open(self.outpath.replace('.json', '_c.json'), 'w') as out:
                     json.dump(responses, out, indent = 2)
         else:
             msg = 'no corrections found for %s'%self.title
             logging.warning(msg)
 
-    def write_corrections(self, target):
-        pass
+    def send_corrections(self):
+        for url, content, corrected_content in self.targets:
+            # TODO add labels for revised=False
+            # TODO check if correction webpage exists
+            correction_page = pywikibot.Page(self.site, url+'/cor')
+            correction_page.text = content
+            correction_page.save('BOT - original content imported from %s'%url)
+            correction_page.text = corrected_content
+            correction_page.save('BOT - corrections implemented')
 
 if __name__ == "__main__":
     title = sys.argv[1] 

@@ -37,19 +37,29 @@ class Bot(object):
         self.outname = None
         self.declared_language = None
         self.local_corpus = set()
+        self.get_global_corpus()
+        self.auto_corrector = AutoCorrector()
 
+    def get_global_corpus(self):
         # TODO better file path handling
         if not os.path.exists(cache_filepath):
-            self.global_corpus = get_global_corpora(self.site)
+            global_corpus_dict = get_global_corpora(self.site)
         else:
-            self.global_corpus = open(cache_filepath).read()
+            global_corpus_dict = json.load(open(cache_filepath))
 
-        self.auto_corrector = AutoCorrector()
+        tokens = []
+        for name_list in global_corpus_dict.values():
+            for name in name_list:
+                tokens += [n.lower() for n in name.split()]
+        self.global_corpus = set(tokens)
 
     def get_page(self, title):
         # get a new teixidora page initializing the rest of the variables
         self.title = title
         self.page = pywikibot.Page(self.site, title)
+        if not self.page.text:
+            msg = "%s does not exist or not reachable"%title
+            raise ValueError(msg)
         self.wikicode = mwparserfromhell.parse(self.page.text)
 
         # get cache out file hash
@@ -67,7 +77,7 @@ class Bot(object):
 
         # get mentioned elements from semantic fields
         self.get_local_corpus()
-        self.auto_corrector.corpus = self.local_corpus
+        self.auto_corrector.corpus = self.local_corpus.union(self.global_corpus)
 
     def get_declared_language(self):
         lan_param = 'language'
@@ -93,7 +103,7 @@ class Bot(object):
         # implementation
         fields = ['projects mentioned', 'keywords', 'organizer',
                   'organizations mentioned', 'speakers',
-                  'keywords in English']
+                  'keywords in English', 'individuals mentioned']
         for field in fields:
             for template in self.wikicode.filter_templates():
                 for param in template.params:
@@ -194,11 +204,19 @@ class Bot(object):
                     final_corrected_content =\
                                    self.auto_corrector.auto_correct(result)
                     result['corrected_content'] = final_corrected_content
+                target = [url,
+                       '. '.join([c['content'] for c in responses['results']]),
+                       '. '.join([c['corrected_content']\
+                                              for c in responses['results']])]
+                self.write_corrections(target)
                 with open(self.outpath.replace('.json', '_c.json'), 'w') as out:
                     json.dump(responses, out, indent = 2)
         else:
             msg = 'no corrections found for %s'%self.title
             logging.warning(msg)
+
+    def write_corrections(self, target):
+        pass
 
 if __name__ == "__main__":
     title = sys.argv[1] 

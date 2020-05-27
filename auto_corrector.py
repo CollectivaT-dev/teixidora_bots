@@ -1,4 +1,5 @@
 import logging
+from copy import deepcopy
 
 LT_MESSAGES = ["(s'ha arribat al límit de suggeriments)"]
 
@@ -34,7 +35,9 @@ class AutoCorrector(object):
 
     def auto_correct(self, response):
         content = response['content']
+        new_content = deepcopy(content)
         language = response['response']['language']['code']
+        difference = 0
         for match in response['response']['matches']:
             replace = False
             if match.get('replacements'):
@@ -44,7 +47,8 @@ class AutoCorrector(object):
                 replacement = match['replacements'][0]['value']
                 category = match['rule']['id']
                 if target.lower() not in self.corpus and\
-                    replacement not in LT_MESSAGES:
+                   replacement not in LT_MESSAGES and\
+                   not target.isupper() :
                     if len(match['replacements']) == 1 and\
                        category in self.correction_categories[language]:
                             replace = True
@@ -54,9 +58,10 @@ class AutoCorrector(object):
                             replace = True
                             print('>',category, target, replacement)
                     if replace:
-                        content = content[:i_start]+replacement+content[i_end:]
-                    #else:
-                    #    print('*', category, target, replacement)
+                        new_content = new_content[:i_start+difference]+\
+                                      replacement+\
+                                      new_content[i_end+difference:]
+                        difference += len(replacement)-len(target)
                 else:
                     print('%s in corpus'%target)
-        return content
+        return new_content

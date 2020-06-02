@@ -10,7 +10,7 @@ import mwparserfromhell
 
 from pylanguagetool import api
 from auto_corrector import AutoCorrector
-from corpora_utils import get_global_corpora, cache_filepath
+from corpora_utils import get_global_corpora, cache_filepath, clean_token
 
 LT_URL = 'https://languagetool.org/api/v2/'
 RE_LANGS = {'ca-ES': re.compile('^catal'),
@@ -39,6 +39,7 @@ class Bot(object):
         self.declared_language = None
         self.local_corpus = set()
         self.get_global_corpus()
+        print(self.global_corpus)
         self.auto_corrector = AutoCorrector()
 
     def get_global_corpus(self):
@@ -49,10 +50,12 @@ class Bot(object):
             global_corpus_dict = json.load(open(cache_filepath))
 
         tokens = []
-        for name_list in global_corpus_dict.values():
-            for name in name_list:
-                tokens += [n.lower() for n in name.split()]
-        self.global_corpus = set(tokens)
+        for key, name_list in global_corpus_dict.items():
+            if key != 'exists':
+                for name in name_list:
+                    tokens += [clean_token(n.lower()) for n in name.split()]
+        # convert list to set eliminating the empty strings
+        self.global_corpus = set([token for token in tokens if token])
 
     def get_page(self, title):
         # get a new teixidora page initializing the rest of the variables

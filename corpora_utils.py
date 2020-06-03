@@ -28,15 +28,16 @@ query_reference = {'organizations':
 
 def get_global_corpora(site):
     corpora = {}
+    exists_dict = {}
     for corpus_name, corpus_info in query_reference.items():
         result_list = []
-        exists_dict = {}
         results = get_results(site, corpus_info['query'])
         for event, result in results['query']['results'].items():
             for filter_field in corpus_info['filter_fields']:
                 for mentioned in result['printouts'][filter_field]:
                     result_list.append(mentioned['fulltext'])
-                    exists_dict[mentioned['fulltext']] = mentioned['fullurl']
+                    if mentioned['exists']:
+                        exists_dict[mentioned['fulltext']] = mentioned['fullurl']
         corpora[corpus_name] = list(set(result_list))
         corpora['exists'] = exists_dict
         with open(cache_filepath, 'w') as out:
@@ -48,4 +49,4 @@ def get_results(site, query):
     return q.submit()
     
 def clean_token(token):
-    return re.sub('[()-–]','', token)
+    return re.sub('[()-]','', token)

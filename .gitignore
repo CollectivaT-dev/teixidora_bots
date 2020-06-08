@@ -6,5 +6,6 @@ cache/
 *.json
 *.swp
 *.lwp
+*.log
 *.ctrl
 user-password.py

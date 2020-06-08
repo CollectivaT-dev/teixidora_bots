@@ -9,6 +9,7 @@ import argparse
 import pywikibot
 import mwparserfromhell
 
+from pywikibot import pagegenerators
 from pylanguagetool import api
 from auto_corrector import AutoCorrector
 from corpora_utils import get_global_corpora, cache_filepath, clean_token
@@ -29,10 +30,26 @@ def main(args):
         c_bot.implement_corrections()
         c_bot.send_corrections()
     elif args.all:
-        raise NotImplementedError
+        for page in page_generator(c_bot.site):
+            c_bot.get_page(page)
+            if c_bot.params["bot import"] == 'Fet':
+                if c_bot.params["bot correction"] == None:
+                    #TODO add Activar manually
+                    pass
+                elif c_bot.params["bot correction"] == 'Activar':
+                    msg = 'correcting %s'%c_bot.page.title
+                    logging.info(msg)
+                    c_bot.correct_notes()
+                    c_bot.implement_corrections()
+                    c_bot.send_corrections()
+                    break
+
+def page_generator(site):
+    category = pywikibot.Category(site, 'Esdeveniments')
+    return pagegenerators.CategorizedPageGenerator(category)
 
 class Bot(object):
-    def __init__(self, botname, host = 'dadess', languagetool = LT_URL):
+    def __init__(self, botname, host = 'teixidora', languagetool = LT_URL):
         # initializes the connection to teixidora semantic wiki
         if host not in HOSTS:
             msg = 'given host %s not in defined hosts: %s'%(host, str(HOSTS))
@@ -41,6 +58,9 @@ class Bot(object):
         self.site = pywikibot.Site('ca', host)
         self.botname = botname
         self.languagetool = LT_URL
+        self.params = {"bot import": None, 
+                       "bot correction": None,
+                       "human review": None}
         self.outname = None
         self.declared_language = None
         self.local_corpus = set()
@@ -62,14 +82,22 @@ class Bot(object):
         # convert list to set eliminating the empty strings
         self.global_corpus = set([token for token in tokens if token])
 
-    def get_page(self, title):
+    def get_page(self, title_or_page):
         # get a new teixidora page initializing the rest of the variables
-        self.title = title
-        self.page = pywikibot.Page(self.site, title)
+        if type(title_or_page) == str:
+            self.title = title_or_page
+            self.page = pywikibot.Page(self.site, self.title)
+        else:
+            self.page = title_or_page
+            self.title = self.page.title()
+
         if not self.page.text:
             msg = "%s does not exist or not reachable"%title
             raise ValueError(msg)
         self.wikicode = mwparserfromhell.parse(self.page.text)
+
+        # get bot correction and human review parameters
+        self.get_correction_status()
 
         # get cache out file hash
         # TODO push to a db and use hash as the key
@@ -88,8 +116,17 @@ class Bot(object):
         self.get_local_corpus()
         self.auto_corrector.corpus = self.local_corpus.union(self.global_corpus)
 
+    def get_correction_status(self):
+        for template in self.wikicode.filter_templates():
+            for param in template.params:
+                for key in self.params.keys():
+                    if param.startswith(key):
+                        i = len(key)+1
+                        self.params[key] = param[i:].strip()
+
     def get_declared_language(self):
         lan_param = 'language'
+        language = None
         for template in self.wikicode.filter_templates():
             for param in template.params:
                 if param.startswith(lan_param):
@@ -97,13 +134,18 @@ class Bot(object):
                                        .lower()
                     break
         # convert language to language code due to non-standard language
-        # naming convention
-        for lan_code, re_lan in RE_LANGS.items():
-            if re_lan.search(language):
-                self.declared_language = lan_code
-        if not self.declared_language:
-            msg = 'WARNING: unknown language in the wiki page of the event %s'\
-                  ''%language
+        # naming convenion
+        if language:
+            for lan_code, re_lan in RE_LANGS.items():
+                if re_lan.search(language):
+                    self.declared_language = lan_code
+            if not self.declared_language:
+                msg = 'WARNING: unknown language in the wiki page of the event %s'\
+                      ''%language
+                print(msg)
+                logging.warning(msg)
+        else:
+            msg = 'WARNING: language not declared for the page %s'%self.title
             print(msg)
             logging.warning(msg)
 
@@ -119,11 +161,13 @@ class Bot(object):
                     if param.startswith(field):
                         # we are interested in tokens not concepts hence
                         # we first get rid of the commas and then split
-                        elements_str = template.get(field)[len(field)+1:]\
-                                               .replace(',','')
-                        elements = set(elements_str.strip().lower().split())
-                        self.local_corpus = self.local_corpus.union(elements)
-                        break
+                        f_elements = template.get(field)
+                        if f_elements:
+                            elements_str = f_elements[len(field)+1:]\
+                                                    .replace(',','')
+                            elements = set(elements_str.strip().lower().split())
+                            self.local_corpus = self.local_corpus.union(elements)
+                            break
         # remove symbols if they appear as tokens
         stop_signs = set(['-', '?', '!', '/', '\\', '"', "'"])
         self.local_corpus = self.local_corpus.difference(stop_signs)
@@ -168,7 +212,7 @@ class Bot(object):
             return responses
         else:
             per_minute_size_limit = 60e3 #KB
-            per_req_size_limit = 10e3 # KB
+            per_req_size_limit = 6e3 # KB
             per_minute_req_limit = 12 # per minute
             sentences = content.split('. ')
             requests = []
@@ -188,10 +232,15 @@ class Bot(object):
             responses = {'title': self.title, 'results': []}
             total_requests = len(requests)
             for i, request in enumerate(requests):
-                response = api.check(request,
+                try:
+                    response = api.check(request,
                                      api_url=self.languagetool,
                                      lang=language)
                 # TODO check language, if confidence lower than 0.90 resend
+                except Exception as e:
+                    with open('LT_error.log', 'w') as out:
+                        json.dump(response, out, indent = 2)
+                    raise e
                
                 message = '%i/%i response sent'%(i+1, total_requests)
                 print(message)
@@ -230,11 +279,40 @@ class Bot(object):
         for url, content, corrected_content in self.targets:
             # TODO add labels for revised=False
             # TODO check if correction webpage exists
-            correction_page = pywikibot.Page(self.site, url+'/correcions')
+            correction_page = pywikibot.Page(self.site, url+'/correccions')
             correction_page.text = content
             correction_page.save('BOT - original content imported from %s'%url)
             correction_page.text = corrected_content
             correction_page.save('BOT - corrections implemented')
+        self.change_param_value('bot correction', 'Fet')
+        self.change_param_value('human review', 'Pendent')
+
+    def change_param_value(self, param, new_value):
+        old_value = self.params[param]
+        if old_value:
+            new_text = re.sub('%s=%s'%(param, old_value),
+                              '%s=%s'%(param, new_value),
+                              self.page.text)
+        else:
+            # assumes there is always bot import parameter
+            if self.params["bot import"] == None:
+                msg = "cannot tick checkbox bcs parameter is not in the"\
+                      " template and the anchor parameter bot import"\
+                      " also doesn't exist.\n%s"%self.title
+                print(msg)
+                raise ValueError(msg)
+            else:
+                bi_val = self.params['bot import']
+                new_text = re.sub('bot import=%s\n'%bi_val,
+                                  'bot import=%s\n|%s=%s\n'%(bi_val,
+                                                             param,
+                                                             new_value),
+                                  self.page.text)
+                if self.page.text == new_text:
+                    msg = "parameter not changed"
+                    print(msg)
+        self.page.text = new_text
+        self.page.save('BOT - %s parameter changed to %s'%(param, new_value))
 
 if __name__ == "__main__":
     usage = "usage: %(prog)s [options]"
@@ -247,7 +325,6 @@ if __name__ == "__main__":
     parser.add_argument('-a', '--all', action='store_true',
                         help='correct all the tagged pages')
     args = parser.parse_args()
-    print(args.all)
     if not (args.page or args.all):
         parser.print_usage()
         raise ValueError('Either single page or all parameter needs to be given')

@@ -22,7 +22,11 @@ class AutoCorrector(object):
                                 'DIFERENT_A',
                                 'RELATIUS',
                                 'EXCLAMACIO_APOSTROF',
-                                'SINO_SI_NO'],
+                                'SINO_SI_NO',
+                                'A_NIVELL',
+                                'SON',
+                                'DE_EL_S_APOSTROFEN',
+                                'ELA_GEMINADA_2CHAR'],
                                       'en-US':
                                ['MORFOLOGIK_RULE_EN_US',
                                 'UPPERCASE_SENTENCE_START',
@@ -57,6 +61,8 @@ class AutoCorrector(object):
                          category in self.typo:
                             replace = True
                             print('>',category, target, replacement)
+                    else:
+                        print('-',category, target, replacement)
                     if replace:
                         new_content = new_content[:i_start+difference]+\
                                       replacement+\

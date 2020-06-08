@@ -7,3 +7,4 @@ cache/
 *.swp
 *.lwp
 *.ctrl
+user-password.py

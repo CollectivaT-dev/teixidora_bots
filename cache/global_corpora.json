@@ -2563,5 +2563,9 @@
     "AVE",
     "Telegram",
     "Amazon"
+  ],
+  "stop_words": [
+    "d'intercooperació",
+    "intercooperació"
   ]
 }

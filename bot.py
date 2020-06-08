@@ -17,9 +17,10 @@ RE_LANGS = {'ca-ES': re.compile('^catal'),
             'es-ES': re.compile('^(cast|esp|spa)'),
             'en-US': re.compile('^(eng|ing|ang)'),
             'fr-FR': re.compile('^fr')}
+HOSTS = ['teixidora', 'localhost', 'dadess']
 
 def main(title):
-    c_bot = Bot('corrector_bot')
+    c_bot = Bot('bot_corrector')
 
     c_bot.get_page(title)
     c_bot.correct_notes()
@@ -27,12 +28,13 @@ def main(title):
     c_bot.send_corrections()
 
 class Bot(object):
-    def __init__(self, botname, host = 'teixidora', languagetool = LT_URL):
+    def __init__(self, botname, host = 'dadess', languagetool = LT_URL):
         # initializes the connection to teixidora semantic wiki
-        if host == 'teixidora':
-            self.site = pywikibot.Site('ca', 'teixidora')
-        else:
-            self.site = pywikibot.Site('ca', 'localhost')
+        if host not in HOSTS:
+            msg = 'given host %s not in defined hosts: %s'%(host, str(HOSTS))
+            print(msg)
+            raise ValueError(msg)
+        self.site = pywikibot.Site('ca', host)
         self.botname = botname
         self.languagetool = LT_URL
         self.outname = None
@@ -224,7 +226,7 @@ class Bot(object):
         for url, content, corrected_content in self.targets:
             # TODO add labels for revised=False
             # TODO check if correction webpage exists
-            correction_page = pywikibot.Page(self.site, url+'/cor')
+            correction_page = pywikibot.Page(self.site, url+'/correcions')
             correction_page.text = content
             correction_page.save('BOT - original content imported from %s'%url)
             correction_page.text = corrected_content

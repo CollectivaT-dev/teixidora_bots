@@ -39,7 +39,6 @@ class Bot(object):
         self.declared_language = None
         self.local_corpus = set()
         self.get_global_corpus()
-        print(self.global_corpus)
         self.auto_corrector = AutoCorrector()
 
     def get_global_corpus(self):

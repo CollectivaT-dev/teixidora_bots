@@ -5,6 +5,7 @@ import json
 import time
 import hashlib
 import logging
+import argparse
 import pywikibot
 import mwparserfromhell
 
@@ -19,13 +20,16 @@ RE_LANGS = {'ca-ES': re.compile('^catal'),
             'fr-FR': re.compile('^fr')}
 HOSTS = ['teixidora', 'localhost', 'dadess']
 
-def main(title):
-    c_bot = Bot('bot_corrector')
+def main(args):
+    c_bot = Bot('bot_corrector', host=args.host)
 
-    c_bot.get_page(title)
-    c_bot.correct_notes()
-    c_bot.implement_corrections()
-    c_bot.send_corrections()
+    if args.page:
+        c_bot.get_page(args.page)
+        c_bot.correct_notes()
+        c_bot.implement_corrections()
+        c_bot.send_corrections()
+    elif args.all:
+        raise NotImplementedError
 
 class Bot(object):
     def __init__(self, botname, host = 'dadess', languagetool = LT_URL):
@@ -233,5 +237,18 @@ class Bot(object):
             correction_page.save('BOT - corrections implemented')
 
 if __name__ == "__main__":
-    title = sys.argv[1] 
-    main(title)
+    usage = "usage: %(prog)s [options]"
+    parser = argparse.ArgumentParser(description="wiki corrector bot launcher",\
+                                     usage=usage)
+    parser.add_argument('-p', '--page', type=str,
+                        help='page to be corrected')
+    parser.add_argument('-o', '--host', type=str, default='teixidora',
+                        help='host to connect')
+    parser.add_argument('-a', '--all', action='store_true',
+                        help='correct all the tagged pages')
+    args = parser.parse_args()
+    print(args.all)
+    if not (args.page or args.all):
+        parser.print_usage()
+        raise ValueError('Either single page or all parameter needs to be given')
+    main(args)

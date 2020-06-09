@@ -20,6 +20,7 @@ RE_LANGS = {'ca-ES': re.compile('^catal'),
             'en-US': re.compile('^(eng|ing|ang)'),
             'fr-FR': re.compile('^fr')}
 HOSTS = ['teixidora', 'localhost', 'dadess']
+STOP_TOKENS = set(['es', 'la', 'el', 'a', 'dona'])
 
 def main(args):
     c_bot = Bot('bot_corrector', host=args.host)
@@ -37,12 +38,12 @@ def main(args):
                     #TODO add Activar manually
                     pass
                 elif c_bot.params["bot correction"] == 'Activar':
-                    msg = 'correcting %s'%c_bot.page.title
+                    msg = 'correcting %s with cache %s'%(c_bot.title,
+                                                         c_bot.outname)
                     logging.info(msg)
                     c_bot.correct_notes()
                     c_bot.implement_corrections()
                     c_bot.send_corrections()
-                    break
 
 def page_generator(site):
     category = pywikibot.Category(site, 'Esdeveniments')
@@ -53,7 +54,7 @@ class Bot(object):
         # initializes the connection to teixidora semantic wiki
         if host not in HOSTS:
             msg = 'given host %s not in defined hosts: %s'%(host, str(HOSTS))
-            print(msg)
+            logging.error(msg)
             raise ValueError(msg)
         self.site = pywikibot.Site('ca', host)
         self.botname = botname
@@ -76,9 +77,13 @@ class Bot(object):
 
         tokens = []
         for key, name_list in global_corpus_dict.items():
-            if key != 'exists':
+            if key not in ['exists', 'stop_words']:
                 for name in name_list:
                     tokens += [clean_token(n.lower()) for n in name.split()]
+            elif key == 'stop_words':
+                # stop words can be compound
+                for name in name_list:
+                    tokens += [name.lower()]
         # convert list to set eliminating the empty strings
         self.global_corpus = set([token for token in tokens if token])
 
@@ -93,6 +98,7 @@ class Bot(object):
 
         if not self.page.text:
             msg = "%s does not exist or not reachable"%title
+            logging.error(msg)
             raise ValueError(msg)
         self.wikicode = mwparserfromhell.parse(self.page.text)
 
@@ -114,9 +120,15 @@ class Bot(object):
 
         # get mentioned elements from semantic fields
         self.get_local_corpus()
-        self.auto_corrector.corpus = self.local_corpus.union(self.global_corpus)
+        corpus = self.local_corpus.union(self.global_corpus)
+        self.auto_corrector.corpus = corpus.difference(STOP_TOKENS)
 
     def get_correction_status(self):
+        # for each page the parameters should be "resetted"
+        self.params = {"bot import": None,
+                       "bot correction": None,
+                       "human review": None}
+
         for template in self.wikicode.filter_templates():
             for param in template.params:
                 for key in self.params.keys():
@@ -142,11 +154,9 @@ class Bot(object):
             if not self.declared_language:
                 msg = 'WARNING: unknown language in the wiki page of the event %s'\
                       ''%language
-                print(msg)
                 logging.warning(msg)
         else:
             msg = 'WARNING: language not declared for the page %s'%self.title
-            print(msg)
             logging.warning(msg)
 
     def get_local_corpus(self):
@@ -158,7 +168,7 @@ class Bot(object):
         for field in fields:
             for template in self.wikicode.filter_templates():
                 for param in template.params:
-                    if param.startswith(field):
+                    if param.startswith('%s='%field):
                         # we are interested in tokens not concepts hence
                         # we first get rid of the commas and then split
                         f_elements = template.get(field)
@@ -284,7 +294,7 @@ class Bot(object):
             correction_page.save('BOT - original content imported from %s'%url)
             correction_page.text = corrected_content
             correction_page.save('BOT - corrections implemented')
-        self.change_param_value('bot correction', 'Fet')
+        self.change_param_value('bot correction', 'Feta')
         self.change_param_value('human review', 'Pendent')
 
     def change_param_value(self, param, new_value):
@@ -299,7 +309,7 @@ class Bot(object):
                 msg = "cannot tick checkbox bcs parameter is not in the"\
                       " template and the anchor parameter bot import"\
                       " also doesn't exist.\n%s"%self.title
-                print(msg)
+                logging.error(msg)
                 raise ValueError(msg)
             else:
                 bi_val = self.params['bot import']
@@ -309,8 +319,10 @@ class Bot(object):
                                                              new_value),
                                   self.page.text)
                 if self.page.text == new_text:
-                    msg = "parameter not changed"
+                    msg = "parameter not changed, cannot save a new version"\
+                          "\n%s -> %s for %s"%(param, new_value, self.page.title)
                     print(msg)
+                    logging.warning(msg)
         self.page.text = new_text
         self.page.save('BOT - %s parameter changed to %s'%(param, new_value))
 
@@ -325,6 +337,14 @@ if __name__ == "__main__":
     parser.add_argument('-a', '--all', action='store_true',
                         help='correct all the tagged pages')
     args = parser.parse_args()
+
+    logging_level = logging.INFO
+    log_file = 'corrector.log'
+    logging.basicConfig(filename=log_file,
+                        format="%(asctime)s-%(levelname)s: %(message)s",
+                        level=logging_level,
+                        filemode='a')
+
     if not (args.page or args.all):
         parser.print_usage()
         raise ValueError('Either single page or all parameter needs to be given')

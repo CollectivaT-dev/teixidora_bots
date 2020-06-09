@@ -32,12 +32,20 @@ class AutoCorrector(object):
                                 'UPPERCASE_SENTENCE_START',
                                 'EN_SPECIFIC_CASE',
                                 'EN_COMPOUNDS',
-                                'EN_CONTRACTION_SPELLING']}
+                                'EN_CONTRACTION_SPELLING'],
+                                      'es-ES':[]}
+        self.correction_stop_categories = {'ca-ES':
+                               ['WHITESPACE_RULE',
+                                'PHRASE_REPETITION'],
+                                           'en-US':
+                               ['WHITESPACE_RULE'],
+                                           'es-ES':
+                               ['WHITESPACE_RULE']}
         self.typo = ['MORFOLOGIK_RULE_CA_ES', 'MORFOLOGIK_RULE_EN_US']
         # corpus initialized from outer scope
         self.corpus = set()
 
-    def auto_correct(self, response):
+    def auto_correct(self, response, scope='full'):
         content = response['content']
         new_content = deepcopy(content)
         language = response['response']['language']['code']
@@ -56,18 +64,26 @@ class AutoCorrector(object):
                     if len(match['replacements']) == 1 and\
                        category in self.correction_categories[language]:
                             replace = True
-                            print(category, target, replacement)
+                            info = ' '.join([category, target, replacement])
+                            logging.info(info)
                     elif len(match['replacements']) < 5 and\
                          category in self.typo:
                             replace = True
-                            print('>',category, target, replacement)
+                            info = ' '.join(['>', category,
+                                             target, replacement])
+                            logging.info(info)
                     else:
-                        print('-',category, target, replacement)
+                        if scope == 'full' and\
+                     category not in self.correction_stop_categories[language]:
+                            replace = True
+                            info = ' '.join(['-', category,
+                                         target, replacement])
+                            logging.info(info)
                     if replace:
                         new_content = new_content[:i_start+difference]+\
                                       replacement+\
                                       new_content[i_end+difference:]
                         difference += len(replacement)-len(target)
                 else:
-                    print('%s in corpus'%target)
+                    logging.info('%s in corpus'%target)
         return new_content

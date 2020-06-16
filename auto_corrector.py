@@ -33,13 +33,14 @@ class AutoCorrector(object):
                                 'EN_SPECIFIC_CASE',
                                 'EN_COMPOUNDS',
                                 'EN_CONTRACTION_SPELLING'],
-                                      'es-ES':[]}
+                                      'es':[]}
         self.correction_stop_categories = {'ca-ES':
                                ['WHITESPACE_RULE',
-                                'PHRASE_REPETITION'],
+                                'PHRASE_REPETITION',
+                                'EN_NO_INFINITIU_CAUSAL'],
                                            'en-US':
                                ['WHITESPACE_RULE'],
-                                           'es-ES':
+                                           'es':
                                ['WHITESPACE_RULE']}
         self.typo = ['MORFOLOGIK_RULE_CA_ES', 'MORFOLOGIK_RULE_EN_US']
         # corpus initialized from outer scope
@@ -60,7 +61,8 @@ class AutoCorrector(object):
                 category = match['rule']['id']
                 if target.lower() not in self.corpus and\
                    replacement not in LT_MESSAGES and\
-                   not target.isupper() :
+                   not target.isupper() and\
+                   not target.startswith('|'):
                     if len(match['replacements']) == 1 and\
                        category in self.correction_categories[language]:
                             replace = True

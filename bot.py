@@ -16,9 +16,9 @@ from corpora_utils import get_global_corpora, cache_filepath, clean_token
 
 LT_URL = 'https://languagetool.org/api/v2/'
 RE_LANGS = {'ca-ES': re.compile('^catal'),
-            'es-ES': re.compile('^(cast|esp|spa)'),
+            'es': re.compile('^(cast|esp|spa)'),
             'en-US': re.compile('^(eng|ing|ang)'),
-            'fr-FR': re.compile('^fr')}
+            'fr': re.compile('^fr')}
 HOSTS = ['teixidora', 'localhost', 'dadess']
 STOP_TOKENS = set(['es', 'la', 'el', 'a', 'dona'])
 

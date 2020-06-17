@@ -97,9 +97,9 @@ class Bot(object):
             self.title = self.page.title()
 
         if not self.page.text:
-            msg = "%s does not exist or not reachable"%title
-            logging.error(msg)
-            raise ValueError(msg)
+            msg = "%s does not exist or not reachable"%title_or_page
+            logging.warning(msg)
+            #raise ValueError(msg)
         self.wikicode = mwparserfromhell.parse(self.page.text)
 
         # get bot correction and human review parameters

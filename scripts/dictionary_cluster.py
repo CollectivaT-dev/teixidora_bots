@@ -2,7 +2,10 @@ import json
 import re
 import unidecode
 import numpy as np
+import mwparserfromhell
 
+from copy import deepcopy
+from datetime import datetime
 from fuzzywuzzy import fuzz
 from sklearn.cluster import DBSCAN
 
@@ -54,6 +57,7 @@ def main():
     with open('cache/auto_cluster_keys.json', 'w') as out:
         json.dump(key_results, out, indent=2)
 
+    dict_wikicode = generate_wikicode(results)
 
 def cluster(data):
     similarity_m = calculate_similarity(data)
@@ -144,6 +148,67 @@ def order_groups(groups, exists):
         for name in group:
             new_keys[name] = i
     return new_groups, new_keys
+
+def generate_wikicode(results):
+    date_format = '%Y/%m/%d %I:%M:%S %p'
+    templates_dict = {}
+    for entity, clusters in results.items():
+        # TODO access teixidora to get the wikicode of teixidora:Lliguem_caps/key
+        # for now get code from text
+        template = get_template(entity)
+        empty_row = get_empty_row(template)
+
+        # convert cluster lists to wiki templates
+        row_list = []
+        for cluster in clusters:
+            # TODO do it for all not just for clusters with multiple values
+            current_row = deepcopy(empty_row)
+            #current_row.get('Prevalent version') = '%s\n'%cluster[0]
+            if len(cluster) > 1:
+                current_row.get('Prevalent version').value = '%s\n'%cluster[0]
+                for i, element in enumerate(cluster):
+                    if i != 0:
+                        key = "Version {0:0=2d}".format(i+1)
+                        current_row.add(key, element)
+                row_list.append(current_row)
+
+        # clean cluster list and add
+        template.get(0).get('Clusters').value = row_list[0]
+        for row in row_list[1:]:
+            template.get(0).get('Clusters').value.append(row)
+
+        # add timestamp value
+        template.get(0).get('Timestamp').value =\
+                                  datetime.strftime(datetime.now(),date_format)
+        lliguem_caps_key = {'projects': 'Projectes',
+                            'organizations': 'Organitzacions',
+                            'people': 'Persones'}
+        templates_dict[lliguem_caps_key[entity]] = template
+    return templates_dict
+
+def get_template(key):
+    return mwparserfromhell.parse(
+                              open('cache/lliguem_caps_projects.wiki').read())
+
+def get_empty_row(template):
+    for t in template.filter_templates():
+        if t.name == "Nexus element cluster\n":
+            temp = deepcopy(t)
+            break
+    keys_to_drop = []
+    for key in temp.params:
+        if key.name.startswith('Version'):
+            keys_to_drop.append(key.name)
+    for key in keys_to_drop:
+        temp.remove(key)
+    return temp
+
+def push_wikicode(bot, template_dict):
+    page = 'teixidora:Lliguem_caps/%s'
+    for key, value in template_dict.items():
+        bot.get_page(page%key)
+        bot.page.text = value
+        bot.page.save('Bot - Lliguem caps %s list update'%key)
 
 if __name__ == "__main__":
     main()

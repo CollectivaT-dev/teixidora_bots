@@ -161,16 +161,14 @@ def generate_wikicode(results):
         # convert cluster lists to wiki templates
         row_list = []
         for cluster in clusters:
-            # TODO do it for all not just for clusters with multiple values
             current_row = deepcopy(empty_row)
-            #current_row.get('Prevalent version') = '%s\n'%cluster[0]
+            current_row.get('Prevalent version').value = '%s\n'%cluster[0]
             if len(cluster) > 1:
-                current_row.get('Prevalent version').value = '%s\n'%cluster[0]
                 for i, element in enumerate(cluster):
                     if i != 0:
                         key = "Version {0:0=2d}".format(i+1)
                         current_row.add(key, element)
-                row_list.append(current_row)
+            row_list.append(current_row)
 
         # clean cluster list and add
         template.get(0).get('Clusters').value = row_list[0]

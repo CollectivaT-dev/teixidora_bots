@@ -29,7 +29,7 @@ def main(args):
         c_bot.get_page(args.page)
         c_bot.correct_notes()
         c_bot.implement_corrections()
-        c_bot.send_corrections()
+        #c_bot.send_corrections()
     elif args.all:
         for page in page_generator(c_bot.site):
             c_bot.get_page(page)

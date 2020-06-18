@@ -1,7 +1,9 @@
+import re
 import logging
 from copy import deepcopy
 
 LT_MESSAGES = ["(s'ha arribat al límit de suggeriments)"]
+RE_SPACES = re.compile('\s')
 
 class AutoCorrector(object):
     def __init__(self):
@@ -37,7 +39,8 @@ class AutoCorrector(object):
         self.correction_stop_categories = {'ca-ES':
                                ['WHITESPACE_RULE',
                                 'PHRASE_REPETITION',
-                                'EN_NO_INFINITIU_CAUSAL'],
+                                'EN_NO_INFINITIU_CAUSAL',
+                                'DONA_COMPTE'],
                                            'en-US':
                                ['WHITESPACE_RULE'],
                                            'es':
@@ -47,8 +50,8 @@ class AutoCorrector(object):
         self.corpus = set()
 
     def auto_correct(self, response, scope='full'):
-        content = response['content']
-        new_content = deepcopy(content)
+        self.content = response['content']
+        new_content = deepcopy(self.content)
         language = response['response']['language']['code']
         difference = 0
         for match in response['response']['matches']:
@@ -56,7 +59,7 @@ class AutoCorrector(object):
             if match.get('replacements'):
                 i_start = match['offset']
                 i_end = match['offset']+match['length']
-                target = content[i_start:i_end]
+                target = self.content[i_start:i_end]
                 replacement = match['replacements'][0]['value']
                 category = match['rule']['id']
                 if target.lower() not in self.corpus and\
@@ -68,9 +71,16 @@ class AutoCorrector(object):
                             replace = True
                             info = ' '.join([category, target, replacement])
                             logging.info(info)
-                    elif len(match['replacements']) < 5 and\
+                    elif len(match['replacements']) > 1 and\
                          category in self.typo:
                             replace = True
+                            alt_replacement = self.get_replacement(target,
+                                                        match['replacements'])
+                            if alt_replacement:
+                                print('for %s:%s instead of %s'%(target,
+                                                               alt_replacement,
+                                                               replacement))
+                                replacement = alt_replacement
                             info = ' '.join(['>', category,
                                              target, replacement])
                             logging.info(info)
@@ -89,3 +99,43 @@ class AutoCorrector(object):
                 else:
                     logging.info('%s in corpus'%target)
         return new_content
+
+    def get_replacement(self, target, matches):
+        replacements = [m['value'] for m in matches]
+        replacement = None
+        if re.search('\s%s\s'%replacements[0], self.content, re.IGNORECASE):
+            top_in_corpus = True
+        else:
+            top_in_corpus = False
+        replacement_in_corpus = False
+        possible_replacements = []
+        for possible_repl in replacements[1:]:
+            if RE_SPACES.sub('', target) == RE_SPACES.sub('', possible_repl):
+                replacement_in_corpus = True
+                for token in possible_repl.split():
+                    if not re.search('\s%s\s'%token, self.content, re.IGNORECASE):
+                        replacement_in_corpus = False
+                possible_replacements.append((possible_repl,
+                                              replacement_in_corpus))
+                if not top_in_corpus and replacement_in_corpus:
+                    break
+        if not top_in_corpus:
+            if replacement_in_corpus:
+                # if top repl unknown and there is one known replacement
+                # use the in corpus replacement
+                replacement = possible_repl
+            else:
+                # if top repl unknown and there is no known replacement
+                # use the first possible replacement
+                if possible_replacements:
+                    replacement = possible_replacements[0][0]
+        else:
+            if replacement_in_corpus:
+                # if top repl in corpus and there is one known replacement
+                # use the in corpus replacement
+                replacement = possible_repl
+            else:
+                # if top repl in corpus and there is no known replacement
+                # use top replacement (i.e. return none)
+                pass
+        return replacement

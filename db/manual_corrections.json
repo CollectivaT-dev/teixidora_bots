@@ -1,0 +1,19 @@
+{
+  "en-US": {},
+  "ca-ES": {
+    "id": "identitat",
+    "ab": "amb",
+    "cohousing": "cohabitatge",
+    "browser": "navegador",
+    "marketing": "màrqueting",
+    "pero": "però",
+    "aqui": "aquí",
+    "coops":"cooperatives",
+    "coopes": "cooperatives",
+    "gene": "Generalitat",
+    "admin": "administració",
+    "presi": "presidenta"
+  },
+  "es": {
+    "admin": "administración"}
+}

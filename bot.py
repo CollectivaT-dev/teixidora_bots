@@ -25,6 +25,7 @@ STOP_TOKENS = set(['es', 'la', 'el', 'a', 'dona'])
 def main(args):
     c_bot = Bot('bot_corrector', host=args.host)
 
+    count = 0
     if args.page:
         c_bot.get_page(args.page)
         c_bot.correct_notes()
@@ -35,7 +36,7 @@ def main(args):
             c_bot.get_page(page)
             if c_bot.params["bot import"] == 'Fet':
                 if c_bot.params["bot correction"] == None:
-                    #c_bot.change_param_value('bot correction', 'Activat')
+                    #c_bot.change_param_value('bot correction', 'Activar')
                     pass
                 elif c_bot.params["bot correction"] == 'Activar':
                     msg = 'correcting %s with cache %s'%(c_bot.title,
@@ -44,6 +45,9 @@ def main(args):
                     c_bot.correct_notes()
                     c_bot.implement_corrections()
                     c_bot.send_corrections()
+                    count =+ 1
+                    if count > 5:
+                        break
 
 def page_generator(site):
     category = pywikibot.Category(site, 'Esdeveniments')
@@ -226,16 +230,19 @@ class Bot(object):
             per_minute_req_limit = 12 # per minute
             sentences = content.split('. ')
             requests = []
+            test_chunks = []
             chunk = []
             for sentence in sentences:
                 chunk.append(sentence)
                 total_chunk = '. '.join(chunk)
                 if sys.getsizeof(total_chunk) > per_req_size_limit:
                     requests.append(total_chunk)
+                    test_chunks.append((chunk[0], chunk[-1]))
                     chunk = []
             if chunk:
                 # add last chunk
                 requests.append('. '.join(chunk))
+                test_chunks.append((chunk[0], chunk[-1]))
 
             # send requests to api
             # TODO smarter rate limit control needed
@@ -248,9 +255,19 @@ class Bot(object):
                                      lang=language)
                 # TODO check language, if confidence lower than 0.90 resend
                 except Exception as e:
-                    with open('LT_error.log', 'w') as out:
-                        json.dump(response, out, indent = 2)
-                    raise e
+                    msg = "%s language error. Trying to detect the language."\
+                          ""%language
+                    logging.warning(msg)
+                    print('error')
+                    response = api.check(test_chunks[i][1],
+                                     api_url=self.languagetool,
+                                     lang=language)
+                    language = response['language']['detectedLanguage']['code']
+                    msg = "%s detected as new language"%language
+                    logging.info(msg)
+                    response = api.check(request,
+                                     api_url=self.languagetool,
+                                     lang=language)
                
                 message = '%i/%i response sent'%(i+1, total_requests)
                 print(message)

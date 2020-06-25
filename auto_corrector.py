@@ -3,8 +3,11 @@ import logging
 import json
 from copy import deepcopy
 
-LT_MESSAGES = ["(s'ha arribat al límit de suggeriments)"]
+LT_MESSAGES = ["(s'ha arribat al límit de suggeriments)",
+               "(suggestion limit reached)",
+               "(se ha alcanzado el límite de sugerencias)"]
 RE_SPACES = re.compile('\s')
+RE_NO = re.compile('^\d')
 
 class AutoCorrector(object):
     def __init__(self):
@@ -35,7 +38,8 @@ class AutoCorrector(object):
                                 'UPPERCASE_SENTENCE_START',
                                 'EN_SPECIFIC_CASE',
                                 'EN_COMPOUNDS',
-                                'EN_CONTRACTION_SPELLING'],
+                                'EN_CONTRACTION_SPELLING',
+                                'DIACRITICS_TRADITIONAL'],
                                       'es':[]}
         self.correction_stop_categories = {'ca-ES':
                                ['WHITESPACE_RULE',
@@ -45,7 +49,10 @@ class AutoCorrector(object):
                                            'en-US':
                                ['WHITESPACE_RULE'],
                                            'es':
-                               ['WHITESPACE_RULE']}
+                               ['WHITESPACE_RULE'],
+                                           'fr':
+                               ['WHITESPACE_RULE',
+                                'PAD']}
         self.typo = ['MORFOLOGIK_RULE_CA_ES', 'MORFOLOGIK_RULE_EN_US']
         # corpus initialized from outer scope
         self.corpus = set()
@@ -57,6 +64,9 @@ class AutoCorrector(object):
         new_content = deepcopy(self.content)
         language = response['response']['language']['code']
         difference = 0
+        manual_corrections_lang = (self.manual_corrections.get(language) or {})
+        correction_stop_categories_lang = \
+                          (self.correction_stop_categories.get(language) or {})
         for match in response['response']['matches']:
             replace = False
             if match.get('replacements'):
@@ -65,50 +75,48 @@ class AutoCorrector(object):
                 target = self.content[i_start:i_end]
                 replacement = match['replacements'][0]['value']
                 category = match['rule']['id']
-                if target.lower() not in self.corpus and\
-                   replacement not in LT_MESSAGES and\
-                   not target.isupper() and\
-                   not target.startswith('|') and\
-                   not (target[0].isupper() and len(target.split())==1):
-                    if self.manual_corrections[language].get(target.lower()):
-                        replacement =\
-                             self.manual_corrections[language][target.lower()]
-                        replace = True
-                        info = ' '.join(['m', category, target, replacement])
-                        logging.info(info)
-                        print(info)
-                    elif len(match['replacements']) == 1 and\
-                       category in self.correction_categories[language]:
-                            replace = True
-                            info = ' '.join([category, target, replacement])
-                            logging.info(info)
-                    elif len(match['replacements']) > 1 and\
-                         category in self.typo:
-                            replace = True
-                            alt_replacement = self.get_replacement(target,
-                                                        match['replacements'])
-                            if alt_replacement:
-                                print('for %s:%s instead of %s'%(target,
-                                                               alt_replacement,
-                                                               replacement))
-                                replacement = alt_replacement
-                            info = ' '.join(['>', category,
-                                             target, replacement])
-                            logging.info(info)
+                if replacement in LT_MESSAGES or\
+                   RE_NO.search(target) or\
+                   target.startswith('|'):
+                    # there is no replacement
+                    # starts with number, skip
+                    # or wikicode
+                    pass
+                else:
+                    if target.lower() in self.corpus or\
+                       target.isupper() or\
+                       (target[0].isupper() and len(target.split())==1) or\
+                       category in correction_stop_categories_lang:
+                        logging.info('%s in corpus or entity or rejected'%target)
                     else:
-                        if scope == 'full' and\
-                     category not in self.correction_stop_categories[language]:
+                        if manual_corrections_lang.get(target.lower()):
+                            replacement =\
+                                 manual_corrections_lang[target.lower()]
                             replace = True
-                            info = ' '.join(['-', category,
-                                         target, replacement])
+                            info = ' '.join(['m', category, target, replacement])
                             logging.info(info)
+                            print(info)
+                        elif len(match['replacements']) == 1:
+                                replace = True
+                                info = ' '.join([category, target, replacement])
+                                logging.info(info)
+                        elif len(match['replacements']) > 1:
+                                replace = True
+                                alt_replacement = self.get_replacement(target,
+                                                            match['replacements'])
+                                if alt_replacement:
+                                    print('for %s:%s instead of %s'%(target,
+                                                                   alt_replacement,
+                                                                   replacement))
+                                    replacement = alt_replacement
+                                info = ' '.join(['>', category,
+                                                 target, replacement])
+                                logging.info(info)
                     if replace:
                         new_content = new_content[:i_start+difference]+\
                                       replacement+\
                                       new_content[i_end+difference:]
                         difference += len(replacement)-len(target)
-                else:
-                    logging.info('%s in corpus'%target)
         return new_content
 
     def get_replacement(self, target, matches):

@@ -1,5 +1,6 @@
 import re
 import logging
+import json
 from copy import deepcopy
 
 LT_MESSAGES = ["(s'ha arribat al límit de suggeriments)"]
@@ -48,6 +49,8 @@ class AutoCorrector(object):
         self.typo = ['MORFOLOGIK_RULE_CA_ES', 'MORFOLOGIK_RULE_EN_US']
         # corpus initialized from outer scope
         self.corpus = set()
+        # known translations
+        self.manual_corrections = json.load(open('db/manual_corrections.json'))
 
     def auto_correct(self, response, scope='full'):
         self.content = response['content']
@@ -65,8 +68,16 @@ class AutoCorrector(object):
                 if target.lower() not in self.corpus and\
                    replacement not in LT_MESSAGES and\
                    not target.isupper() and\
-                   not target.startswith('|'):
-                    if len(match['replacements']) == 1 and\
+                   not target.startswith('|') and\
+                   not (target[0].isupper() and len(target.split())==1):
+                    if self.manual_corrections[language].get(target.lower()):
+                        replacement =\
+                             self.manual_corrections[language][target.lower()]
+                        replace = True
+                        info = ' '.join(['m', category, target, replacement])
+                        logging.info(info)
+                        print(info)
+                    elif len(match['replacements']) == 1 and\
                        category in self.correction_categories[language]:
                             replace = True
                             info = ' '.join([category, target, replacement])
@@ -129,6 +140,8 @@ class AutoCorrector(object):
                 # use the first possible replacement
                 if possible_replacements:
                     replacement = possible_replacements[0][0]
+                    print(replacement)
+                    replacement = None
         else:
             if replacement_in_corpus:
                 # if top repl in corpus and there is one known replacement

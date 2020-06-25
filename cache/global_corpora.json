@@ -2567,6 +2567,7 @@
   "stop_words": [
     "d'intercooperació",
     "intercooperació",
+    "intercooperación",
     "gringo",
     "a la XES",
     "de la XES",
@@ -2576,6 +2577,14 @@
     "note",
     "takers",
     "anonymous",
-    "url"
+    "url",
+    "autor/es",
+    "mencionats/des",
+    "big data",
+    "organisations",
+    "'''",
+    "apuntes",
+    "persons",
+    "mentioned"
   ]
 }

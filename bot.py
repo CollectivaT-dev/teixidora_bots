@@ -20,7 +20,7 @@ RE_LANGS = {'ca-ES': re.compile('^catal'),
             'en-US': re.compile('^(eng|ing|ang)'),
             'fr': re.compile('^fr')}
 HOSTS = ['teixidora', 'localhost', 'dadess']
-STOP_TOKENS = set(['es', 'la', 'el', 'a', 'dona'])
+STOP_TOKENS = set(['es', 'la', 'el', 'a', 'dona', 'i', 'y'])
 
 def main(args):
     c_bot = Bot('bot_corrector', host=args.host)
@@ -48,6 +48,9 @@ def main(args):
                     count =+ 1
                     if count > 5:
                         break
+                elif c_bot.params["bot correction"] == "Feta" and\
+                     c_bot.params["human review"] != "Feta":
+                    c_bot.replace_corrected_notes()
 
 def page_generator(site):
     category = pywikibot.Category(site, 'Esdeveniments')
@@ -342,6 +345,21 @@ class Bot(object):
                     logging.warning(msg)
         self.page.text = new_text
         self.page.save('BOT - %s parameter changed to %s'%(param, new_value))
+
+    def replace_corrected_notes(self):
+        self.get_note_titles()
+        corrections = []
+        for note in self.notes:
+            correction = note+'/correccions'
+            correction_page = pywikibot.Page(self.site, correction_page)
+            if correction_page.text:
+                note_page = pywikibot.Page(self.site, note)
+                note_page.text = correction_page.text
+                note_page.save("BOT - manual corrections implemented")
+                self.change_param_value('human review', 'Feta')
+            else:
+                logging.warning("%s not found, manual correction cannot"\
+                                " be saved")
 
 if __name__ == "__main__":
     usage = "usage: %(prog)s [options]"

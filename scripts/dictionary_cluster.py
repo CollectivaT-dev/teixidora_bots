@@ -11,7 +11,7 @@ from sklearn.cluster import DBSCAN
 
 def main():
     # TODO get info directly from teixidora
-    data = json.load(open('cache/global_corpora.json'))
+    data = json.load(open('db/global_corpora.json'))
     print('calculating organizations')
     org_groups, org_keys = cluster(data['organizations'])
     print('calculating projects')

@@ -1,10 +1,11 @@
 import json
 import re
+import os
 
 from pywikibot.data import api
 
-# TODO better filepath handling
-cache_filepath = 'cache/global_corpora.json'
+PATH = os.path.abspath(os.path.dirname(__file__))
+cache_filepath = os.path.join(PATH, 'db/global_corpora.json')
 query_reference = {'organizations':
                    {'query':'[[Has event organizations mentioned::+]]'\
                             'OR[[Has event organizer::+]]|mainlabel=-|'\

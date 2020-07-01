@@ -21,40 +21,39 @@ RE_LANGS = {'ca-ES': re.compile('^catal'),
             'fr': re.compile('^fr')}
 HOSTS = ['teixidora', 'localhost', 'dadess']
 STOP_TOKENS = set(['es', 'la', 'el', 'a', 'dona', 'i', 'y'])
+PATH = os.path.abspath(os.path.dirname(__file__))
 
 def main(args):
     c_bot = Bot('bot_corrector', host=args.host)
 
     count = 0
     if args.page:
-        c_bot.get_page(args.page)
-        c_bot.correct_notes()
-        c_bot.implement_corrections()
-        c_bot.send_corrections()
+        correct_or_publish(c_bot, args.page)
     elif args.all:
+        count = 0
         for page in page_generator(c_bot.site):
-            c_bot.get_page(page)
-            if c_bot.params["bot import"] == 'Fet':
-                if c_bot.params["bot correction"] == None:
-                    #c_bot.change_param_value('bot correction', 'Activar')
-                    pass
-                elif c_bot.params["bot correction"] == 'Activar':
-                    msg = 'correcting %s with cache %s'%(c_bot.title,
-                                                         c_bot.outname)
-                    logging.info(msg)
-                    c_bot.correct_notes()
-                    c_bot.implement_corrections()
-                    c_bot.send_corrections()
-                    count =+ 1
-                    if count > 5:
-                        break
-                elif c_bot.params["bot correction"] == "Feta" and\
-                     c_bot.params["human review"] != "Feta":
-                    c_bot.replace_corrected_notes()
+            correct_or_publish(c_bot, page)
 
 def page_generator(site):
     category = pywikibot.Category(site, 'Esdeveniments')
     return pagegenerators.CategorizedPageGenerator(category)
+
+def correct_or_publish(c_bot, page):
+    c_bot.get_page(page)
+    if c_bot.params["bot import"] == 'Fet':
+        if c_bot.params["bot correction"] == None:
+            #c_bot.change_param_value('bot correction', 'Activar')
+            pass
+        elif c_bot.params["bot correction"] == 'Activar':
+            msg = 'correcting %s with cache %s'%(c_bot.title,
+                                                 c_bot.outname)
+            logging.info(msg)
+            c_bot.correct_notes()
+            c_bot.implement_corrections()
+            c_bot.send_corrections()
+        elif c_bot.params["bot correction"] == "Feta" and\
+             c_bot.params["human review"] == "Feta":
+            c_bot.replace_corrected_notes()
 
 class Bot(object):
     def __init__(self, botname, host = 'teixidora', languagetool = LT_URL):
@@ -116,7 +115,7 @@ class Bot(object):
         # TODO push to a db and use hash as the key
         h = hashlib.md5(self.title.encode('utf8'))
         self.outname = h.hexdigest()+'.json'
-        self.outpath = 'cache/'+self.outname # TODO better path management
+        self.outpath = os.path.join(PATH, 'cache/'+self.outname)
 
         # clean the notes and corrected notes objects if they were full
         self.notes = []
@@ -261,11 +260,18 @@ class Bot(object):
                     msg = "%s language error. Trying to detect the language."\
                           ""%language
                     logging.warning(msg)
-                    print('error')
                     response = api.check(test_chunks[i][1],
                                      api_url=self.languagetool,
                                      lang=language)
-                    language = response['language']['detectedLanguage']['code']
+                    language_bottom = response['language']['detectedLanguage']['code']
+                    response = api.check(test_chunks[i][0],
+                                     api_url=self.languagetool,
+                                     lang=language)
+                    language_top = response['language']['detectedLanguage']['code']
+                    if language != language_top:
+                        language = language_top
+                    else:
+                        language = language_bottom
                     msg = "%s detected as new language"%language
                     logging.info(msg)
                     response = api.check(request,
@@ -348,15 +354,14 @@ class Bot(object):
 
     def replace_corrected_notes(self):
         self.get_note_titles()
-        corrections = []
         for note in self.notes:
             correction = note+'/correccions'
-            correction_page = pywikibot.Page(self.site, correction_page)
+            correction_page = pywikibot.Page(self.site, correction)
             if correction_page.text:
                 note_page = pywikibot.Page(self.site, note)
                 note_page.text = correction_page.text
                 note_page.save("BOT - manual corrections implemented")
-                self.change_param_value('human review', 'Feta')
+                self.change_param_value('human review', '')
             else:
                 logging.warning("%s not found, manual correction cannot"\
                                 " be saved")

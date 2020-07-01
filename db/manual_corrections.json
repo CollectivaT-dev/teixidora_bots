@@ -12,8 +12,10 @@
     "coopes": "cooperatives",
     "gene": "Generalitat",
     "admin": "administració",
-    "presi": "presidenta"
+    "presi": "presidenta",
+    "uni": "universitat"
   },
   "es": {
-    "admin": "administración"}
+    "admin": "administración",
+    "uni": "universidad"}
 }

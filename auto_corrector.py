@@ -1,4 +1,5 @@
 import re
+import os
 import logging
 import json
 from copy import deepcopy
@@ -8,6 +9,7 @@ LT_MESSAGES = ["(s'ha arribat al límit de suggeriments)",
                "(se ha alcanzado el límite de sugerencias)"]
 RE_SPACES = re.compile('\s')
 RE_NO = re.compile('^\d')
+PATH = os.path.abspath(os.path.dirname(__file__))
 
 class AutoCorrector(object):
     def __init__(self):
@@ -57,7 +59,8 @@ class AutoCorrector(object):
         # corpus initialized from outer scope
         self.corpus = set()
         # known translations
-        self.manual_corrections = json.load(open('db/manual_corrections.json'))
+        self.manual_corrections = json.load(open(os.path.join(PATH,
+                                               'db/manual_corrections.json')))
 
     def auto_correct(self, response, scope='full'):
         self.content = response['content']

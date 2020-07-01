@@ -266,7 +266,7 @@ class Bot(object):
                     language_bottom = response['language']['detectedLanguage']['code']
                     response = api.check(test_chunks[i][0],
                                      api_url=self.languagetool,
-                                     lang=language)
+                                     lang=language_bottom)
                     language_top = response['language']['detectedLanguage']['code']
                     if language != language_top:
                         language = language_top
@@ -379,7 +379,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     logging_level = logging.INFO
-    log_file = 'corrector.log'
+    log_file = os.path.join(PATH, 'cron_corrector.log')
     logging.basicConfig(filename=log_file,
                         format="%(asctime)s-%(levelname)s: %(message)s",
                         level=logging_level,

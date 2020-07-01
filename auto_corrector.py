@@ -145,11 +145,8 @@ class AutoCorrector(object):
                 replacement = possible_repl
             else:
                 # if top repl unknown and there is no known replacement
-                # use the first possible replacement
-                if possible_replacements:
-                    replacement = possible_replacements[0][0]
-                    print(replacement)
-                    replacement = None
+                # use the top replacement (i.e. return none)
+                pass
         else:
             if replacement_in_corpus:
                 # if top repl in corpus and there is one known replacement

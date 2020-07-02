@@ -41,10 +41,7 @@ def page_generator(site):
 def correct_or_publish(c_bot, page):
     c_bot.get_page(page)
     if c_bot.params["bot import"] == 'Fet':
-        if c_bot.params["bot correction"] == None:
-            #c_bot.change_param_value('bot correction', 'Activar')
-            pass
-        elif c_bot.params["bot correction"] == 'Activar':
+        if c_bot.params["bot correction"] == 'Activar':
             msg = 'correcting %s with cache %s'%(c_bot.title,
                                                  c_bot.outname)
             logging.info(msg)

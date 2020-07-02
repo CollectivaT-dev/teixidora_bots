@@ -98,7 +98,6 @@ class AutoCorrector(object):
                             replace = True
                             info = ' '.join(['m', category, target, replacement])
                             logging.info(info)
-                            print(info)
                         elif len(match['replacements']) == 1:
                                 replace = True
                                 info = ' '.join([category, target, replacement])
@@ -108,9 +107,6 @@ class AutoCorrector(object):
                                 alt_replacement = self.get_replacement(target,
                                                             match['replacements'])
                                 if alt_replacement:
-                                    print('for %s:%s instead of %s'%(target,
-                                                                   alt_replacement,
-                                                                   replacement))
                                     replacement = alt_replacement
                                 info = ' '.join(['>', category,
                                                  target, replacement])

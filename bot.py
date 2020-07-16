@@ -15,9 +15,9 @@ from auto_corrector import AutoCorrector
 from corpora_utils import get_global_corpora, cache_filepath, clean_token
 
 LT_URL = 'https://languagetool.org/api/v2/'
-RE_LANGS = {'ca-ES': re.compile('^catal'),
-            'es': re.compile('^(cast|esp|spa)'),
-            'en-US': re.compile('^(eng|ing|ang)'),
+RE_LANGS = {'ca-ES': re.compile('^(catal|ca-)'),
+            'es': re.compile('^(cast|es|spa)'),
+            'en-US': re.compile('^(en|ing|ang)'),
             'fr': re.compile('^fr')}
 HOSTS = ['teixidora', 'localhost', 'dadess']
 STOP_TOKENS = set(['es', 'la', 'el', 'a', 'dona', 'i', 'y'])
@@ -159,8 +159,8 @@ class Bot(object):
                       ''%language
                 logging.warning(msg)
         else:
-            msg = 'WARNING: language not declared for the page %s'%self.title
-            logging.warning(msg)
+            msg = 'language not declared for the page %s'%self.title
+            logging.debug(msg)
 
     def get_local_corpus(self):
         # tokens extracted here will be ignored in the correction

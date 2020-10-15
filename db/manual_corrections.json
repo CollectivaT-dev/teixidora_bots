@@ -13,9 +13,25 @@
     "gene": "Generalitat",
     "admin": "administració",
     "presi": "presidenta",
-    "uni": "universitat"
+    "uni": "universitat",
+    "bcn": "Barcelona",
+    "q": "que",
+    "pq": "perquè",
+    "colab": "col·laborativa",
+    "corp": "corporació",
+    "corps": "corporacions",
+    "commoners": "comuners"
   },
   "es": {
     "admin": "administración",
-    "uni": "universidad"}
+    "uni": "universidad",
+    "unicorn": "unicornio",
+    "bcn": "Barcelona",
+    "q": "que",
+    "pq": "porque",
+    "colab": "colaborativa",
+    "corp": "corporación",
+    "corps": "corporacions",
+    "commoners": "comuneros"
+  }
 }

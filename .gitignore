@@ -1,5 +1,4 @@
-venv/
-venv_ml/
+venv*/
 __pycache__/
 apicache-py3/
 cache/

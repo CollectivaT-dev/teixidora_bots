@@ -18,3 +18,9 @@ PYWIKIBOT_DIR=<your-dir>
 */5 * * * * flock -n /tmp/tbot.lockfile $PYWIKIBOT_DIR/venv/bin/python3 $PYWIKIBOT_DIR/bot.py -o teixidora -a >> /tmp/corrector.log 2>&1
 
 ```
+
+## Tests
+To run tests
+```
+python -m unittest discover -s tests -p "test_*.py" -v
+```

@@ -5,7 +5,7 @@ import hashlib
 import pywikibot
 
 from bot import Bot
-from corrector import process
+from corrector import process, get_chunks
 
 TEST_PATH = os.path.dirname(os.path.realpath(__file__))
 CACHE_FILES_PATH = os.path.join(TEST_PATH, '../cache')
@@ -64,5 +64,19 @@ class BotTestCase(unittest.TestCase):
         for page in self.pages:
             with open(os.path.join(CACHE_FILES_PATH, page[3])) as cache:
                 full_text = cache.read()
-        response = process(full_text)
-        
+        response = process(page[1], full_text)
+        self.assertIsNotNone(response.get('title'))
+        self.assertIsNotNone(response.get('results'))
+
+        #first_result = response.get('results')
+        #self.assertIsNotNone(first_result.get('content'))
+        #self.assertIsNotNone(first_result.get('language'))
+        #self.assertIsNotNone(first_result.get('matches'))
+
+    def test_get_chunks(self):
+        for page in self.pages:
+            with open(os.path.join(CACHE_FILES_PATH, page[3])) as cache:
+                full_text = cache.read()
+        chunks = get_chunks(full_text)
+        recovered_text = '\n'.join([chunk[1] for chunk in chunks])
+        self.assertEqual(recovered_text, full_text)

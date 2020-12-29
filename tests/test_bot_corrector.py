@@ -5,6 +5,7 @@ import hashlib
 import pywikibot
 
 from bot import Bot
+from corrector import process
 
 TEST_PATH = os.path.dirname(os.path.realpath(__file__))
 CACHE_FILES_PATH = os.path.join(TEST_PATH, '../cache')
@@ -14,10 +15,12 @@ class BotTestCase(unittest.TestCase):
         self.test_bot = Bot('bot_corrector', 'dadess')
         self.pages = [('Metadecidim:_I_Jornades_i_Hackaton_del_desenvolupament_participatiu_del_Decidim.Barcelona_2016/11/25',
                        'Metadecidim: I Jornades i Hackaton del desenvolupament participatiu del Decidim.Barcelona',
-                       'apunts'),
+                       'apunts',
+                       'a2176037d906ce808dee0065a4238466.txt'),
                       ('Mobile_Social_Congress_23-2-2016',
                        'MSC 2016 Mobile Social Congress',
-                       'apunts')]
+                       'apunts',
+                       'c09679da28ccc741dfb5080bc9fa9a21.txt')]
 
     def tearDown(self):
         pass
@@ -43,8 +46,9 @@ class BotTestCase(unittest.TestCase):
             # get hash name
             # TODO from original function for consistency
             h = hashlib.md5(note_page.title().encode('utf8'))
-            self.outname = h.hexdigest()+'.txt'
-            self.outpath = os.path.join(CACHE_FILES_PATH, self.outname)
+            outname = h.hexdigest()+'.txt'
+            outpath = os.path.join(CACHE_FILES_PATH, outname)
+            self.assertEqual(page[3], outname)
 
             '''
             with open(self.outpath, 'w') as out:
@@ -52,8 +56,13 @@ class BotTestCase(unittest.TestCase):
             '''
 
             text_ref = note_page.text
-            with open(self.outpath) as cache:
+            with open(outpath) as cache:
                 text_cache = cache.read()
             self.assertEqual(text_ref, text_cache)
 
-
+    def test_corrector_process(self):
+        for page in self.pages:
+            with open(os.path.join(CACHE_FILES_PATH, page[3])) as cache:
+                full_text = cache.read()
+        response = process(full_text)
+        

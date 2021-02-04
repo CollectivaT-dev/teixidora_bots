@@ -14,6 +14,8 @@ def get_chunks(full_text):
     chunks = []
     for paragraph in full_text.split('\n'):
         short = re.sub('[^\w ]+|\d+|_', '', paragraph)
+        language = None
         if len(short) > 25 and ' ' in paragraph:
             language = detect(paragraph)
+        chunks.append((paragraph, language))
     return chunks

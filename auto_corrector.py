@@ -59,8 +59,8 @@ class AutoCorrector(object):
         # corpus initialized from outer scope
         self.corpus = set()
         # known translations
-        self.manual_corrections = json.load(open(os.path.join(PATH,
-                                               'db/manual_corrections.json')))
+        with open(os.path.join(PATH,'db/manual_corrections.json')) as mc:
+            self.manual_corrections = json.load(mc)
 
     def auto_correct(self, response, scope='full'):
         self.content = response['content']

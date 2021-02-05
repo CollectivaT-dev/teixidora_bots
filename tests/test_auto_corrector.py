@@ -26,16 +26,17 @@ class AutoCorrectorTestCase(unittest.TestCase):
         for lang, files in self.test_correcton_files.items():
             print('testing for', lang)
             test_file = os.path.join(CACHE_FILES_PATH, files[0])
-            for result in json.load(open(test_file))['results']:
-                corrected_content = self.test_corrector.auto_correct(result)
+            with open(test_file) as tf:
+                for result in json.load(tf)['results']:
+                    corrected_content = self.test_corrector.auto_correct(result)
 
-                # assert that the result is string that has a similar length
-                # to the input content
-                # format check
-                difference = abs(len(result['content'])-len(corrected_content))
-                self.assertLessEqual(difference/len(result['content']),0.1)
+                    # assert that the result is string that has a similar length
+                    # to the input content
+                    # format check
+                    difference = abs(len(result['content'])-len(corrected_content))
+                    self.assertLessEqual(difference/len(result['content']),0.1)
 
-                # do language checks
-                if lang == 'ca-ES':
-                   pass 
+                    # do language checks
+                    if lang == 'ca-ES':
+                       pass 
                 

@@ -78,6 +78,9 @@ class BotTestCase(unittest.TestCase):
             self.assertEqual(recovered_text, full_text)
 
     def test_correct_page(self):
+        '''
+        Test of original corrector
+        '''
         page = self.pages[0]
         self.test_bot.get_page(page[0])
         outpath = page[3]

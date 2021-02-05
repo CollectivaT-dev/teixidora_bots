@@ -76,7 +76,8 @@ class Bot(object):
         if not os.path.exists(cache_filepath):
             global_corpus_dict = get_global_corpora(self.site)
         else:
-            global_corpus_dict = json.load(open(cache_filepath))
+            with open(cache_filepath) as cf:
+                global_corpus_dict = json.load(cf)
 
         tokens = []
         for key, name_list in global_corpus_dict.items():

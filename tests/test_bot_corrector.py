@@ -59,9 +59,9 @@ class BotTestCase(unittest.TestCase):
             print(page[3])
             with open(page[3]) as cache:
                 full_text = cache.read()
-        response = process(page[1], full_text)
-        self.assertIsNotNone(response.get('title'))
-        self.assertIsNotNone(response.get('results'))
+            response = process(page[1], full_text)
+            self.assertIsNotNone(response.get('title'))
+            self.assertIsNotNone(response.get('results'))
 
         #first_result = response.get('results')
         #self.assertIsNotNone(first_result.get('content'))
@@ -72,10 +72,10 @@ class BotTestCase(unittest.TestCase):
         for page in self.pages:
             with open(page[3]) as cache:
                 full_text = cache.read()
-        chunks = get_chunks(full_text)
-        recovered_text = '\n'.join([chunk[0] for chunk in chunks])
-        self.assertEqual(len(recovered_text), len(full_text))
-        self.assertEqual(recovered_text, full_text)
+            chunks = get_chunks(full_text)
+            recovered_text = '\n'.join([chunk[0] for chunk in chunks])
+            self.assertEqual(len(recovered_text), len(full_text))
+            self.assertEqual(recovered_text, full_text)
 
     def test_correct_page(self):
         page = self.pages[0]

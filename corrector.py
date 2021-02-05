@@ -3,11 +3,17 @@ import re
 from language_tool_python import LanguageTool
 from langdetect import detect
 
+# known teixidora languages written in langdetect format
+# in order to be able skip erroneously detected languages
+# TODO move to global config
+TEIXIDORA_LANGS = ['en', 'ca', 'es', 'fr']
+
 def process(title, full_text):
     response = {'title': title,
                 'results': []}
 
     chunks = get_chunks(full_text)
+    correct(chunks, response)
     return response
 
 def get_chunks(full_text):
@@ -19,3 +25,24 @@ def get_chunks(full_text):
             language = detect(paragraph)
         chunks.append((paragraph, language))
     return chunks
+
+def correct(chunks, response):
+    languages = get_languages(chunks)
+    tools = {}
+    for language in languages:
+        tools[language] = LanguageTool(language)
+
+    results = []
+    for chunk in chunks:
+        c_language = chunk[1]
+        c_text = chunk[0]
+        if c_language in TEIXIDORA_LANGS:
+            results += tools[c_language].check(c_text)
+
+    response['results'] = results
+    return response
+
+def get_languages(chunks):
+    languages = set([chunk[1] for chunk in chunks])
+    languages.remove('None')
+    return languages

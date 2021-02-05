@@ -5,7 +5,7 @@ import hashlib
 import pywikibot
 
 from bot import Bot
-from corrector import process, get_chunks
+from corrector import process, get_chunks, correct
 
 TEST_PATH = os.path.dirname(os.path.realpath(__file__))
 CACHE_FILES_PATH = os.path.join(TEST_PATH, '../cache')
@@ -25,6 +25,18 @@ class BotTestCase(unittest.TestCase):
             h = hashlib.md5(note_page_title.encode('utf8'))
             outname = h.hexdigest()+'.txt'
             page.append(os.path.join(CACHE_FILES_PATH, outname))
+
+        self.test_chunks = [("'''MOBILE SOCIAL CONGRESS'''", 'None'),
+('', 'None'),
+("'''17:45h''' Programari lliure i xarxa oberta, amb Aleix Pol de KDE eV i Laura Mora de Capa8 i Guifi.net", 'ca'),
+('', 'None'),
+("'''18:30h''' L’origen dels minerals amb què es fan els mòbils, amb Maria Cañadas (presidenta d'Amnistia Internacional Catalunya)", 'ca'),
+("Parlarà d'un informe:", 'None'),
+("","None"),
+('DEMOCRATIC REPUBLIC OF CONGO: "THIS IS WHAT WE DIE FOR": HUMAN RIGHTS ABUSES IN THE DEMOCRATIC REPUBLIC OF THE CONGO POWER THE GLOBAL TRADE IN COBALT',"en"),
+('El govern no ha volgut regular la mineria artesanal. La cadena de subministrament cal conèixer-la. MDL empresa xinesa de cobalt, un dels majors fabricants del món de productes de cobalt, es ven a fabricants de components...', 'ca'),
+('Perspectiva desde el lab, lo "lab" y los sistemas de innovación. Una ínfima minoría de la población innova mientras que el resto cosume.', 'es')
+                      ]
 
     def tearDown(self):
         pass
@@ -77,6 +89,15 @@ class BotTestCase(unittest.TestCase):
             self.assertEqual(len(recovered_text), len(full_text))
             self.assertEqual(recovered_text, full_text)
 
+            with open(page[3].replace('.txt', '_chunks.txt'), 'w') as out:
+                for chunk in chunks:
+                    out.write('%s\t%s\n'%(chunk[1], chunk[0]))
+
+    def test_correct(self):
+        response = {'title':'test'}
+        correct(self.test_chunks, response)
+        self.assertNotEqual(len(response['results']), 0)
+
     def test_correct_page(self):
         '''
         Test of original corrector
@@ -95,5 +116,7 @@ class BotTestCase(unittest.TestCase):
         # check corrections
         responses = self.test_bot.correct_note(note_title)
 
+        '''
         with open(outjson, 'w') as out:
             json.dump(responses, out, indent = 2)
+        '''

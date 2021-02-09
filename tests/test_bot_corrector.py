@@ -89,7 +89,7 @@ class BotTestCase(unittest.TestCase):
             content = first_result['content']
             for match in first_result['response']['matches'][-4:-1]:
                 offset_in_context = match['offsetInContext']
-                offset_absolute = match['errorLength']
+                offset_absolute = match['offsetInContent']
                 length = match['errorLength']
                 ref_in_context =\
                    match['context'][offset_in_context:offset_in_context+length]

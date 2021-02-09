@@ -34,17 +34,22 @@ def correct(chunks, response):
             tools[language] = LanguageTool(language)
 
     results = []
-    for chunk in chunks:
+    for i, chunk in enumerate(chunks):
         c_language = chunk[1]
         c_text = chunk[0]
+        chunk_offset = sum([len(chunk[0]) for chunk in chunks[:i]])+i
         if c_language in TEIXIDORA_LANGS:
-            results += tools[c_language].check(c_text)
+            cd_results = []
+            for c_result in tools[c_language].check(c_text):
+                cd_result = c_result.__dict__
+                cd_result['offsetInContent'] = chunk_offset+cd_result['offset']
+                cd_results.append(cd_result)
+            results += cd_results
 
-    d_results = [result.__dict__ for result in results]
     result = {}
     result['content'] = '\n'.join([chunk[0] for chunk in chunks])
     result['response'] = {}
-    result['response']['matches'] = d_results
+    result['response']['matches'] = results
     response['results'] = [result]
     return response
 

@@ -75,10 +75,27 @@ class BotTestCase(unittest.TestCase):
             self.assertIsNotNone(response.get('title'))
             self.assertIsNotNone(response.get('results'))
 
-        #first_result = response.get('results')
-        #self.assertIsNotNone(first_result.get('content'))
-        #self.assertIsNotNone(first_result.get('language'))
-        #self.assertIsNotNone(first_result.get('matches'))
+            with open(page[3].replace('.txt', '_nc.json'), 'w') as out:
+                json.dump(response, out, indent = 2)
+
+            results = response.get('results')
+            first_result = results[0]
+            self.assertIsNotNone(first_result.get('response'))
+            self.assertIsNotNone(first_result.get('content'))
+            #self.assertIsNotNone(first_result.get('language'))
+            self.assertIsNotNone(first_result['response'].get('matches'))
+
+            # check if offset arithmetic is correct
+            content = first_result['content']
+            for match in first_result['response']['matches'][-4:-1]:
+                offset_in_context = match['offsetInContext']
+                offset_absolute = match['errorLength']
+                length = match['errorLength']
+                ref_in_context =\
+                   match['context'][offset_in_context:offset_in_context+length]
+                ref_in_content =\
+                   content[offset_absolute:offset_absolute+length]
+                self.assertEqual(ref_in_context, ref_in_content) 
 
     def test_get_chunks(self):
         for page in self.pages:
@@ -98,7 +115,7 @@ class BotTestCase(unittest.TestCase):
         correct(self.test_chunks, response)
         self.assertNotEqual(len(response['results']), 0)
 
-    def test_correct_page(self):
+    def test_corrector_online(self):
         '''
         Test of original corrector
         '''

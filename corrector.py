@@ -40,7 +40,12 @@ def correct(chunks, response):
         if c_language in TEIXIDORA_LANGS:
             results += tools[c_language].check(c_text)
 
-    response['results'] = results
+    d_results = [result.__dict__ for result in results]
+    result = {}
+    result['content'] = '\n'.join([chunk[0] for chunk in chunks])
+    result['response'] = {}
+    result['response']['matches'] = d_results
+    response['results'] = [result]
     return response
 
 def get_languages(chunks):

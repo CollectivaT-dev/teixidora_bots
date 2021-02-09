@@ -55,7 +55,6 @@ class AutoCorrector(object):
                                            'fr':
                                ['WHITESPACE_RULE',
                                 'PAD']}
-        self.typo = ['MORFOLOGIK_RULE_CA_ES', 'MORFOLOGIK_RULE_EN_US']
         # corpus initialized from outer scope
         self.corpus = set()
         # known translations

@@ -20,7 +20,7 @@ def get_chunks(full_text):
     chunks = []
     for paragraph in full_text.split('\n'):
         short = re.sub('[^\w ]+|\d+|_', '', paragraph)
-        language = None
+        language = 'None'
         if len(short) > 25 and ' ' in paragraph:
             language = detect(paragraph)
         chunks.append((paragraph, language))
@@ -30,7 +30,8 @@ def correct(chunks, response):
     languages = get_languages(chunks)
     tools = {}
     for language in languages:
-        tools[language] = LanguageTool(language)
+        if language in TEIXIDORA_LANGS:
+            tools[language] = LanguageTool(language)
 
     results = []
     for chunk in chunks:

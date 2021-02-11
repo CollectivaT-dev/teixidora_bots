@@ -6,6 +6,7 @@ import pywikibot
 
 from bot import Bot
 from corrector import process, get_chunks, correct
+from auto_corrector import AutoCorrector
 
 TEST_PATH = os.path.dirname(os.path.realpath(__file__))
 CACHE_FILES_PATH = os.path.join(TEST_PATH, '../cache')
@@ -114,6 +115,17 @@ class BotTestCase(unittest.TestCase):
         response = {'title':'test'}
         correct(self.test_chunks, response)
         self.assertNotEqual(len(response['results']), 0)
+
+    def test_auto_corrector(self):
+        auto_corrector = AutoCorrector()
+        for page in self.pages:
+            with open(page[3].replace('.txt','_nc.json')) as f:
+                responses = json.load(f)
+            for result in responses['results']:
+                auto_corrector.auto_correct(result)
+
+            for c in responses['results']:
+                self.assertIsNotNone(c.get('corrected_content'))
 
     def test_corrector_online(self):
         '''

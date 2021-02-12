@@ -83,8 +83,9 @@ class BotTestCase(unittest.TestCase):
             first_result = results[0]
             self.assertIsNotNone(first_result.get('response'))
             self.assertIsNotNone(first_result.get('content'))
-            #self.assertIsNotNone(first_result.get('language'))
             self.assertIsNotNone(first_result['response'].get('matches'))
+            self.assertIsNotNone(first_result['response']['matches'][0]\
+                                                              .get('language'))
 
             # check if offset arithmetic is correct
             content = first_result['content']

@@ -43,6 +43,7 @@ def correct(chunks, response):
             for c_result in tools[c_language].check(c_text):
                 cd_result = c_result.__dict__
                 cd_result['offsetInContent'] = chunk_offset+cd_result['offset']
+                cd_result['language'] = c_language
                 cd_results.append(cd_result)
             results += cd_results
 

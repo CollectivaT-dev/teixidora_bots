@@ -83,6 +83,7 @@ class BotTestCase(unittest.TestCase):
             first_result = results[0]
             self.assertIsNotNone(first_result.get('response'))
             self.assertIsNotNone(first_result.get('content'))
+            self.assertIsNotNone(first_result.get('languages'))
             self.assertIsNotNone(first_result['response'].get('matches'))
             self.assertIsNotNone(first_result['response']['matches'][0]\
                                                               .get('language'))
@@ -123,10 +124,14 @@ class BotTestCase(unittest.TestCase):
             with open(page[3].replace('.txt','_nc.json')) as f:
                 responses = json.load(f)
             for result in responses['results']:
-                auto_corrector.auto_correct(result)
+                result['corrected_content'] =\
+                                            auto_corrector.auto_correct(result)
 
             for c in responses['results']:
                 self.assertIsNotNone(c.get('corrected_content'))
+
+            with open(page[3].replace('.txt','_nc.json'), 'w') as out:
+                json.dump(responses, out, indent=2)
 
     def test_corrector_online(self):
         '''

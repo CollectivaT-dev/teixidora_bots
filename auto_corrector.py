@@ -7,6 +7,7 @@ from copy import deepcopy
 LT_MESSAGES = ["(s'ha arribat al límit de suggeriments)",
                "(suggestion limit reached)",
                "(se ha alcanzado el límite de sugerencias)"]
+LANG_KEYS = {'ca': 'ca-ES', 'en': 'en-US', 'es':'es', 'fr':'fr'}
 RE_SPACES = re.compile('\s')
 RE_NO = re.compile('^\d')
 PATH = os.path.abspath(os.path.dirname(__file__))
@@ -55,6 +56,8 @@ class AutoCorrector(object):
                                            'fr':
                                ['WHITESPACE_RULE',
                                 'PAD']}
+        # whether the corrections done offline or via API
+        self.offline = None
         # corpus initialized from outer scope
         self.corpus = set()
         # known translations
@@ -64,19 +67,47 @@ class AutoCorrector(object):
     def auto_correct(self, response, scope='full'):
         self.content = response['content']
         new_content = deepcopy(self.content)
-        language = response['response']['language']['code']
+        # detect response format: online vs offline
+        if response['response'].get('language'):
+            self.offline = False
+            languages = [response['response']['language']['code']]
+        else:
+            self.offline = True
+            # get language list and convert from langdetect to LanguageTool codes
+            languages = [LANG_KEYS[lang] for lang in response['languages']]
+
         difference = 0
-        manual_corrections_lang = (self.manual_corrections.get(language) or {})
+        # since rule ids are unique per language dict can be flattened
         correction_stop_categories_lang = \
-                          (self.correction_stop_categories.get(language) or {})
+                [value for ls in self.correction_stop_categories.values() \
+                       for value in ls]
+        # put language as key if not in dict
+        for i_language in languages:
+            if not self.correction_categories.get(i_language):
+                self.correction_categories[i_language] = {}
+
+        if self.offline == True:
+            offset_key = 'offsetInContent'
+            length_key = 'errorLength'
+        else:
+            offset_key = 'offset'
+            length_key = 'length'
+
         for match in response['response']['matches']:
             replace = False
             if match.get('replacements'):
-                i_start = match['offset']
-                i_end = match['offset']+match['length']
+                i_start = match[offset_key]
+                i_end = match[offset_key]+match[length_key]
                 target = self.content[i_start:i_end]
-                replacement = match['replacements'][0]['value']
-                category = match['rule']['id']
+                if self.offline == True:
+                    language = LANG_KEYS[match['language']]
+                    category = match['ruleId']
+                    replacement = match['replacements'][0]
+                else:
+                    language = languages[0]
+                    category = match['rule']['id']
+                    replacement = match['replacements'][0]['value']
+
                 if replacement in LT_MESSAGES or\
                    RE_NO.search(target) or\
                    target.startswith('|'):
@@ -91,9 +122,9 @@ class AutoCorrector(object):
                        category in correction_stop_categories_lang:
                         logging.info('%s in corpus or entity or rejected'%target)
                     else:
-                        if manual_corrections_lang.get(target.lower()):
+                        if self.manual_corrections[language].get(target.lower()):
                             replacement =\
-                                 manual_corrections_lang[target.lower()]
+                              self.manual_corrections[language][target.lower()]
                             replace = True
                             info = ' '.join(['m', category, target, replacement])
                             logging.info(info)
@@ -118,7 +149,10 @@ class AutoCorrector(object):
         return new_content
 
     def get_replacement(self, target, matches):
-        replacements = [m['value'] for m in matches]
+        if self.offline == True:
+            replacements = matches
+        else:
+            replacements = [m['value'] for m in matches]
         replacement = None
         if re.search('\s%s\s'%replacements[0], self.content, re.IGNORECASE):
             top_in_corpus = True

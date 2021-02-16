@@ -6,6 +6,7 @@ from langdetect import detect
 # known teixidora languages written in langdetect format
 # in order to be able skip erroneously detected languages
 # TODO move to global config
+# TODO should be the same as LANG_KEYS keys
 TEIXIDORA_LANGS = ['en', 'ca', 'es', 'fr']
 
 def process(title, full_text):
@@ -49,6 +50,7 @@ def correct(chunks, response):
 
     result = {}
     result['content'] = '\n'.join([chunk[0] for chunk in chunks])
+    result['languages'] = list(tools.keys())
     result['response'] = {}
     result['response']['matches'] = results
     response['results'] = [result]

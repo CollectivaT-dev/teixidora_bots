@@ -188,12 +188,24 @@ class Bot(object):
 
     def correct_notes(self):
         self.get_note_titles()
+        if not self.notes:
+           message = "no apunts url found for: %s"%self.title
         for note in self.notes:
             self.corrected_notes[note] = self.correct_note(note)
 
     def get_note_titles(self):
         # placeholder to extract the apunts links
-        self.notes = ['/'.join([self.title, 'apunts', '01'])]
+        # currently unefficiently checks if the urls are full
+        # checks first the new format, only if it doesn't exist checks the old
+        new_format = '/'.join([self.title, 'apunts', '01'])
+        old_format = '/'.join([self.title, 'apunts'])
+        note_page = pywikibot.Page(self.site, new_format)
+        if note_page.text:
+            self.notes = [new_format]
+        else:
+            note_page = pywikibot.Page(self.site, old_format)
+            if note_page.text:
+                self.notes = [old_format]
 
     def correct_note(self, note):
         note_page = pywikibot.Page(self.site, note)

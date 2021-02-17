@@ -61,7 +61,11 @@ class BotTestCase(unittest.TestCase):
             note_title = os.path.join(page[0], page[2])
             note_page = pywikibot.Page(self.test_bot.site,
                                        note_title)
-            
+
+            # test get_notes
+            self.test_bot.get_note_titles()
+            self.assertEqual(self.test_bot.notes[0], note_title)
+
             text_ref = note_page.text
             with open(outpath) as cache:
                 text_cache = cache.read()

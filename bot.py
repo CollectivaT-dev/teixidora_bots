@@ -8,6 +8,7 @@ import logging
 import argparse
 import pywikibot
 import mwparserfromhell
+import corrector
 
 from pywikibot import pagegenerators
 from pylanguagetool import api
@@ -62,6 +63,7 @@ class Bot(object):
         self.site = pywikibot.Site('ca', host)
         self.botname = botname
         self.languagetool = LT_URL
+        self.online = False
         self.params = {"bot import": None, 
                        "bot correction": None,
                        "human review": None}
@@ -186,7 +188,8 @@ class Bot(object):
         stop_signs = set(['-', '?', '!', '/', '\\', '"', "'"])
         self.local_corpus = self.local_corpus.difference(stop_signs)
 
-    def correct_notes(self):
+    def correct_notes(self, online=False):
+        self.online = online
         self.get_note_titles()
         if not self.notes:
            message = "no apunts url found for: %s"%self.title
@@ -237,65 +240,67 @@ class Bot(object):
                 responses = json.load(f)
             return responses
         else:
-            per_minute_size_limit = 60e3 #KB
-            per_req_size_limit = 6e3 # KB
-            per_minute_req_limit = 12 # per minute
-            sentences = content.split('. ')
-            requests = []
-            test_chunks = []
-            chunk = []
-            for sentence in sentences:
-                chunk.append(sentence)
-                total_chunk = '. '.join(chunk)
-                if sys.getsizeof(total_chunk) > per_req_size_limit:
-                    requests.append(total_chunk)
-                    test_chunks.append((chunk[0], chunk[-1]))
-                    chunk = []
-            if chunk:
-                # add last chunk
-                requests.append('. '.join(chunk))
-                test_chunks.append((chunk[0], chunk[-1]))
-
-            # send requests to api
-            # TODO smarter rate limit control needed
             responses = {'title': self.title, 'results': []}
-            total_requests = len(requests)
-            for i, request in enumerate(requests):
-                try:
-                    response = api.check(request,
-                                     api_url=self.languagetool,
-                                     lang=language)
-                # TODO check language, if confidence lower than 0.90 resend
-                except Exception as e:
-                    msg = "%s language error. Trying to detect the language."\
-                          ""%language
-                    logging.warning(msg)
-                    response = api.check(test_chunks[i][1],
-                                     api_url=self.languagetool,
-                                     lang=language)
-                    language_bottom = response['language']['detectedLanguage']['code']
-                    response = api.check(test_chunks[i][0],
-                                     api_url=self.languagetool,
-                                     lang=language_bottom)
-                    language_top = response['language']['detectedLanguage']['code']
-                    if language != language_top:
-                        language = language_top
-                    else:
-                        language = language_bottom
-                    msg = "%s detected as new language"%language
-                    logging.info(msg)
-                    response = api.check(request,
-                                     api_url=self.languagetool,
-                                     lang=language)
-               
-                message = '%i/%i response sent'%(i+1, total_requests)
-                print(message)
-                logging.info(message)
-                if i+1 != total_requests:
-                    # wait at all except the last LT api call
-                    time.sleep(4)
-                responses['results'].append({'content': request,
-                                               'response': response})
+            if self.online:
+                per_req_size_limit = 6e3 # KB
+                sentences = content.split('. ')
+                requests = []
+                test_chunks = []
+                chunk = []
+                for sentence in sentences:
+                    chunk.append(sentence)
+                    total_chunk = '. '.join(chunk)
+                    if sys.getsizeof(total_chunk) > per_req_size_limit:
+                        requests.append(total_chunk)
+                        test_chunks.append((chunk[0], chunk[-1]))
+                        chunk = []
+                if chunk:
+                    # add last chunk
+                    requests.append('. '.join(chunk))
+                    test_chunks.append((chunk[0], chunk[-1]))
+
+                # send requests to api
+                # TODO smarter rate limit control needed
+                total_requests = len(requests)
+                for i, request in enumerate(requests):
+                    try:
+                        response = api.check(request,
+                                         api_url=self.languagetool,
+                                         lang=language)
+                    # TODO check language, if confidence lower than 0.90 resend
+                    except Exception as e:
+                        msg = "%s language error. Trying to detect the language."\
+                              ""%language
+                        logging.warning(msg)
+                        response = api.check(test_chunks[i][1],
+                                         api_url=self.languagetool,
+                                         lang=language)
+                        language_bottom = response['language']['detectedLanguage']['code']
+                        response = api.check(test_chunks[i][0],
+                                         api_url=self.languagetool,
+                                         lang=language_bottom)
+                        language_top = response['language']['detectedLanguage']['code']
+                        if language != language_top:
+                            language = language_top
+                        else:
+                            language = language_bottom
+                        msg = "%s detected as new language"%language
+                        logging.info(msg)
+                        response = api.check(request,
+                                         api_url=self.languagetool,
+                                         lang=language)
+                    message = '%i/%i response sent'%(i+1, total_requests)
+                    print(message)
+                    logging.info(message)
+                    if i+1 != total_requests:
+                        # wait at all except the last LT api call
+                        time.sleep(4)
+                    responses['results'].append({'content': request,
+                                                   'response': response})
+            else:
+                chunks = corrector.get_chunks(content)
+                corrector.correct(chunks, responses)
+
             with open(self.outpath, 'w') as out:
                 json.dump(responses, out, indent = 2)
             return responses

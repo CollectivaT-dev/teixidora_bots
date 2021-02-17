@@ -139,7 +139,7 @@ class BotTestCase(unittest.TestCase):
                 json.dump(responses, out, indent=2)
             '''
 
-    def test_corrector_online(self):
+    def test_correctors(self):
         '''
         Test of original corrector
         '''
@@ -154,9 +154,18 @@ class BotTestCase(unittest.TestCase):
         # TODO get chunks/requests
         # TODO send chunks/requests
 
-        # check corrections
+        # check online corrections
+        if os.path.isfile(self.test_bot.outpath):
+            os.remove(self.test_bot.outpath)
+        self.test_bot.online = True
         responses = self.test_bot.correct_note(note_title)
+        self.assertTrue(responses.get('results') != [])
 
+        # check offline corrections
+        os.remove(self.test_bot.outpath)
+        self.test_bot.online = False
+        responses = self.test_bot.correct_note(note_title)
+        self.assertTrue(responses.get('results') != [])
         '''
         with open(outjson, 'w') as out:
             json.dump(responses, out, indent = 2)

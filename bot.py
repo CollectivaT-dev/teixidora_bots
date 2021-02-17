@@ -204,7 +204,7 @@ class Bot(object):
         return self.correct_content(content, language)
 
     def get_language(self, content):
-        # TODO send also to LT to check
+        # TODO currently done in corrector per paragraph
         if self.declared_language:
             return self.declared_language
         else:

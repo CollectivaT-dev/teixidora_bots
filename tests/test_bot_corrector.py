@@ -130,8 +130,10 @@ class BotTestCase(unittest.TestCase):
             for c in responses['results']:
                 self.assertIsNotNone(c.get('corrected_content'))
 
+            '''
             with open(page[3].replace('.txt','_nc.json'), 'w') as out:
                 json.dump(responses, out, indent=2)
+            '''
 
     def test_corrector_online(self):
         '''

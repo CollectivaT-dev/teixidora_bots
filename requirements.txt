@@ -14,4 +14,4 @@ pywikibot==3.0.20200405
 requests==2.23.0
 six==1.15.0
 tqdm==4.54.1
-urllib3==1.25.8
+urllib3==1.26.5
